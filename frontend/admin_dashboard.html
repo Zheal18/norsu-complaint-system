@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+:root {
+  --primary: #1e3a8a;
+  --primary-dark: #172554;
+  --accent: #facc15;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --danger: #dc2626;
+  --success: #16a34a;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+
+  background: url("images/NORSU.png") center no-repeat;
+  background-size: 850px;
+
+  opacity: 0.10;   /* 🔥 THIS CONTROLS WATERMARK FADE */
+  z-index: 0;
+}
+
+/* ===== CONTAINER ===== */
+.dashboard {
+  width: 100%;
+  max-width: 1100px;
+  margin: 40px auto;   /* 🔥 THIS IS KEY */
+  background: var(--card);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+}
+/* ===== HEADER ===== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.system-title {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.dashboard-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+h2 {
+  text-align: center;
+  color: var(--primary);
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+<p style="text-align:center;color:#64748b;margin-bottom:20px;">
+  Complaint Management System
+</p>
+
+/* ===== PROFESSIONAL BUTTON STYLE ===== */
+.btn {
+  padding: 10px 20px;
+  border-radius: 999px; /* 🔥 pill shape */
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+/* PRIMARY */
+.btn-primary {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(37,99,235,0.3);
+}
+
+/* SUCCESS */
+.btn-success {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: #fff;
+}
+
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(34,197,94,0.3);
+}
+
+/* DANGER */
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(239,68,68,0.3);
+}
+
+/* OPTIONAL OUTLINE */
+.btn-outline {
+  background: white;
+  border: 1px solid #1e3a8a;
+  color: #1e3a8a;
+}
+
+.btn-outline:hover {
+  background: #1e3a8a;
+  color: white;
+}
+button,
+.btn {
+  border-radius: 12px !important;   /* 🔥 curved edges */
+  padding: 10px 18px;
+  font-weight: 600;
+}
+/* ===== LOGOUT ===== */
+.btn-logout {
+  background: var(--danger);
+  color:#fff;
+  padding:12px 22px;
+  font-size:15px;
+  font-weight:600;
+  border-radius:10px;
+}
+
+.btn-logout:hover {
+  background:#b91c1c;
+}
+
+/* ===== SECTIONS ===== */
+.section {
+  margin-bottom:22px;
+}
+
+.section-header {
+  background: #f1f5f9;
+  padding: 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  transition: 0.2s;
+}
+
+.section-header:hover {
+  background: #e2e8f0;
+}
+
+.section-content {
+  display: block;
+  margin-top: 12px;
+}
+
+/* ===== CONTROLS ===== */
+.controls {
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+
+select, input {
+  padding:10px 14px;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom:12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+/* ===== REPORT STATUS ===== */
+.report.unsolved {
+  border-left: 6px solid #dc2626;
+}
+
+.report.solved {
+  border-left: 6px solid #16a34a;
+}
+
+/* ===== BADGES ===== */
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.solved-badge {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pending-badge {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.attachment img {
+  max-width:100%;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+}
+.empty {
+  text-align:center;
+  padding:25px;
+  color:#64748b;
+  font-size:14px;
+}
+.report-header {
+  cursor: pointer;
+  font-weight: 600;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px;
+  border-radius:8px;
+  background:#f8fafc;
+  transition:0.2s;
+}
+
+.report-header:hover {
+  background:#e2e8f0;
+}
+
+.report-body {
+  display: none;
+  margin-top:10px;
+}
+
+.report.open .report-body {
+  display: block;
+}
+</style>
+</head>
+
+<body>
+<!-- IMAGE MODAL -->
+<div id="imgModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.8);
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+">
+  <img id="modalImg" style="max-width:90%;max-height:90%;border-radius:10px;">
+</div>
+<div class="dashboard">
+  <div class="header">
+  <div class="header-left">
+    <div>
+      <div class="system-title">NORSU Mabinay Complaint Management System</div>
+      <div class="dashboard-title" id="dashboardTitle">ADMIN DASHBOARD</div>
+    </div>
+  </div>
+
+  <div class="top-actions">
+    <button class="btn btn-danger" onclick="logout()">Logout</button>
+    <button class="btn btn-primary" onclick="changeMyPassword()">Change Password</button>
+  </div>
+</div>
+
+<!-- QR CODE -->
+<div class="section">
+  <div class="section-header" onclick="toggle('qrSection')">
+    📱 QR Code Access
+  </div>
+
+  <div class="section-content" id="qrSection">
+
+    <div class="card">
+      <h4>Generate Complaint QR</h4>
+
+      <button class="btn btn-primary" onclick="generateQR()">
+  Generate QR
+</button>
+
+      <div id="qrBox" style="margin-top:15px;"></div>
+
+      <button class="btn btn-success" onclick="downloadQR()">
+  Download QR
+</button>
+    </div>
+
+  </div>
+</div>
+   
+  <!-- REPORTS -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('reportsSection')">
+      📄 Reports
+    </div>
+    <div class="section-content" id="reportsSection">
+
+      <div class="controls">
+        <select id="reportSort">
+          <option value="newest">Newest → Oldest</option>
+          <option value="oldest">Oldest → Newest</option>
+        </select>
+
+        <input type="date" id="reportDate">
+      </div>
+
+      <div id="reports"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let openConversationId = null;     
+const unreadCounts = {};           
+const BASE = window.location.origin;
+const admin = JSON.parse(localStorage.getItem("admin"));
+let allReports = [];
+const reports = document.getElementById("reports");
+const reportSort = document.getElementById("reportSort");
+const reportDate = document.getElementById("reportDate");
+window.onload = () => {
+  const admin = JSON.parse(localStorage.getItem("admin"));
+  const title = document.getElementById("dashboardTitle");
+
+  if (admin && admin.department) {
+    title.textContent = `${admin.department.toUpperCase()} DASHBOARD`;
+  } else {
+    title.textContent = "ADMIN DASHBOARD";
+  }
+};
+
+if (!admin) {
+  alert("Please log in");
+  location.href = "index.html";
+}
+
+function logout() {
+  localStorage.removeItem("admin");
+  location.href = "index.html";
+}
+async function changeMyPassword() {
+  const newPass = prompt("Enter your new password:");
+  if (!newPass) return;
+
+  const confirmPass = prompt("Confirm your new password:");
+  if (newPass !== confirmPass) {
+    alert("❌ Passwords do not match");
+    return;
+  }
+  const res = await fetch(`${BASE}/api/admin/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-username": admin.username,
+      "x-admin-password": admin.password
+    },
+    body: JSON.stringify({ newPassword: newPass })
+  });
+  if (!res.ok) {
+    alert("❌ Failed to change password");
+    return;
+  }
+
+  alert("✅ Password changed successfully");
+
+  // 🔥 IMPORTANT: update localStorage
+  admin.password = newPass;
+  localStorage.setItem("admin", JSON.stringify(admin));
+}
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === "block" ? "none" : "block";
+}
+function toggleReport(id) {
+  const body = document.getElementById("body-" + id);
+
+  if (!body) return;
+
+  const parent = body.parentElement;
+  parent.classList.toggle("open");
+}
+function toggleConversation(id) {
+  const el = document.getElementById("conv-" + id);
+
+  if (!el) return;
+
+  const isOpen = el.style.display === "block";
+
+  // close all conversations
+  document.querySelectorAll('[id^="conv-"]').forEach(e => e.style.display = "none");
+
+  if (!isOpen) {
+    el.style.display = "block";
+    openConversationId = id;
+
+    // mark as read
+    unreadCounts[id] = 0;
+  } else {
+    el.style.display = "none";
+    openConversationId = null;
+  }
+}
+/* ===== REPORTS ===== */
+async function loadReports() {
+  try {
+    const res = await fetch(`${BASE}/api/admin/reports`, {
+      headers: {
+        "x-admin-username": admin.username,
+        "x-admin-password": admin.password
+      }
+    });
+
+    if (!res.ok) {
+      console.error("Fetch failed:", res.status);
+      alert("Failed to load reports");
+      return;
+    }
+
+    const data = await res.json();
+
+    allReports = data.map(r => {
+  const unread = (r.messages || []).filter(m => m.sender === "user").length;
+
+  if (openConversationId !== r.id) {
+    unreadCounts[r.id] = unread;
+  }
+
+  return {
+    ...r,
+    solved: r.solved === 1
+  };
+});
+
+    renderReports();
+
+  } catch (err) {
+    console.error("Network error:", err);
+    alert("Network error. Check connection.");
+  }
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleString("en-US", {
+    month:"2-digit",
+    day:"2-digit",
+    year:"2-digit",
+    hour:"numeric",
+    minute:"2-digit",
+    hour12:true
+  });
+}
+
+function renderReports() {
+  reports.innerHTML = "";
+  let list = [...allReports];
+
+  if (reportDate.value)
+    list = list.filter(r => r.created_at.startsWith(reportDate.value));
+  if (!list.length) {
+    reports.innerHTML = "<div class='empty'>📭 No reports available</div>";
+    return;
+  }
+
+  list.sort((a,b) =>
+    reportSort.value === "newest"
+      ? new Date(b.created_at) - new Date(a.created_at)
+      : new Date(a.created_at) - new Date(b.created_at)
+  );
+
+  list.forEach(r => {
+    const div = document.createElement("div");
+    div.className = `card report ${r.solved ? "solved" : "unsolved"}`;
+
+  div.innerHTML = `
+ <div class="report-header" onclick="toggleReport(${r.id}); event.stopPropagation();">
+  <span>📄 Report #${r.id}</span>
+
+  <div style="display:flex; gap:10px; align-items:center;">
+    ${unreadCounts[r.id] > 0 ? `
+      <span style="
+        background:#ef4444;
+        color:#fff;
+        border-radius:50%;
+        padding:4px 8px;
+        font-size:12px;
+      ">
+        🔔 ${unreadCounts[r.id]}
+      </span>
+    ` : ""}
+
+    <span>${r.solved ? "✅ Resolved" : "⏳ Pending"}</span>
+  </div>
+</div>
+  <div class="report-body" id="body-${r.id}">
+    <small>${formatDate(r.created_at)}</small>
+
+    <div style="margin-top:10px;">
+      <strong>Complainant:</strong> ${r.complainant_name || "N/A"}<br>
+      <strong>Respondent:</strong> ${r.respondent_name || "N/A"}<br><br>
+
+      <strong>Description:</strong><br>
+      ${r.description || "No details provided"}
+      <!-- 🔥 CONVERSATION BUTTON -->
+<div style="margin-top:12px;">
+  <button class="btn btn-outline" onclick="toggleConversation(${r.id}); event.stopPropagation();">
+    💬 Conversation
+  </button>
+</div>
+
+<!-- 🔥 CONVERSATION PANEL (HIDDEN) -->
+<div id="conv-${r.id}" style="display:none; margin-top:10px;">
+
+  ${r.messages && r.messages.length ? r.messages.map(m => `
+    <div style="
+      margin-top:8px;
+      padding:10px;
+      border-radius:10px;
+      max-width:75%;
+      ${m.sender === 'admin'
+        ? 'background:#dbeafe; margin-left:auto; text-align:right;'
+        : 'background:#dcfce7; margin-right:auto; text-align:left;'}
+    ">
+      <div style="font-size:12px; opacity:0.7;">
+        ${m.sender === 'admin' ? 'Admin' : 'User'}
+      </div>
+      ${m.message}
+    </div>
+  `).join("") : "<small>No messages yet</small>"}
+
+</div>
+    </div>
+
+    <textarea id="msg-${r.id}" 
+      placeholder="Type update message..." 
+      style="width:100%;margin-top:10px;"></textarea>
+
+    <button class="btn btn-primary" onclick="sendMessage(${r.id})">
+      Send Update
+    </button>
+
+    ${r.report_image ? `
+      <button class="btn btn-outline" onclick="openImage('${r.report_image}')">
+        View Attachment
+      </button>
+    ` : ""}
+
+    <br><br>
+
+    ${!r.solved
+      ? `<button class="btn btn-success" onclick="markSolved(${r.id})">
+          Mark as Resolved
+         </button>`
+      : `<button class="btn btn-outline" disabled>Resolved</button>`
+    }
+  </div>
+`;
+      
+    reports.appendChild(div);
+  });
+}
+async function markSolved(id) {
+ const res = await fetch(`${BASE}/api/reports/${id}/solve`, {
+  method: "PUT"
+});
+
+if (!res.ok) {
+  alert("Failed to update status");
+  return;
+}
+
+  // 🔄 Always re-fetch from DB to stay in sync
+  await loadReports();
+}
+
+/* ===== EVENTS ===== */
+reportSort.onchange = renderReports;
+reportDate.onchange = renderReports;
+
+/* ===== QR CODE ===== */
+let qrVisible = false;
+
+function generateQR() {
+  const qrBox = document.getElementById("qrBox");
+  const btn = document.querySelector('[onclick="generateQR()"]'); // 🔥 ADD HERE
+
+  // 🔥 If visible → hide
+  if (qrVisible) {
+    qrBox.innerHTML = "";
+    qrVisible = false;
+
+    btn.textContent = "Generate QR"; // 🔥 update text
+    return;
+  }
+
+  // 🔥 Show QR
+  qrBox.innerHTML = `<canvas id="qrCanvas"></canvas>`;
+
+  const url = `http://192.168.254.105:5000/report.html`;
+
+  QRCode.toCanvas(
+    document.getElementById("qrCanvas"),
+    url,
+    { width: 200 },
+    function (error) {
+      if (error) {
+        console.error(error);
+        alert("Failed to generate QR");
+      }
+    }
+  );
+
+  qrVisible = true;
+
+  btn.textContent = "Hide QR"; // 🔥 update text
+}
+
+function downloadQR() {
+  const canvas = document.getElementById("qrCanvas");
+
+  if (!canvas) {
+    alert("Generate QR first.");
+    return;
+  }
+
+  const link = document.createElement("a");
+  link.download = "complaint_qr.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+/* ====SEND MESSAGE====*/
+async function sendMessage(id) {
+  const msg = document.getElementById(`msg-${id}`).value.trim();
+
+  if (!msg) {
+    alert("Enter a message");
+    return;
+  }
+
+  const res = await fetch(`${BASE}/api/reports/${id}/message`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-username": admin.username,
+      "x-admin-password": admin.password
+    },
+    body: JSON.stringify({ message: msg })
+  });
+
+  if (!res.ok) {
+    alert("Failed to send update");
+    return;
+  }
+
+  alert("✅ Update sent");
+document.getElementById(`msg-${id}`).value = "";
+  loadReports();
+}
+// ===== IMAGE MODAL =====
+function openImage(src) {
+  const modal = document.getElementById("imgModal");
+  const img = document.getElementById("modalImg");
+
+  img.src = src;
+  modal.style.display = "flex";
+}
+
+// Close when clicking outside
+document.getElementById("imgModal").addEventListener("click", function (e) {
+  if (e.target.id === "imgModal") {
+    this.style.display = "none";
+  }
+});
+
+// Close with ESC key
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.getElementById("imgModal").style.display = "none";
+  }
+});
+loadReports();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard</title>
+
+<style>
+:root {
+  --primary:#2563eb;
+  --danger:#dc2626;
+  --success:#16a34a;
+  --bg:#364dcf;
+  --card:#a4aff5;
+  --muted:#64748b;
+}
+
+* { box-sizing:border-box; font-family:"Segoe UI", Arial, sans-serif; }
+
+body {
+  margin:0;
+  background:var(--bg);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  padding:30px 15px;
+}
+
+.dashboard {
+  width:100%;
+  max-width:1100px;
+  background:var(--card);
+  border-radius:14px;
+  padding:28px;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+h2 { text-align:center; margin-bottom:20px; }
+
+button, select, input {
+  padding:10px 14px;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+  font-size:14px;
+}
+/* ===== LOGOUT BUTTON ===== */
+.btn-logout {
+  background: #dc2626;            /* red */
+  color: #ffffff;                 /* white text */
+  padding: 12px 22px;             /* larger size */
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-logout:hover {
+  background: #b91c1c;
+}
+
+.btn-logout:active {
+  transform: scale(0.98);
+}
+
+button { cursor:pointer; border:none; }
+
+.primary { background:var(--primary); color:#fff; }
+.success { background:var(--success); color:#fff; }
+.danger { background:var(--danger); color:#fff; }
+.outline {
+  background:transparent;
+  border:1px solid var(--primary);
+  color:var(--primary);
+}
+
+.section { margin-bottom:22px; }
+
+.section-header {
+  background:#e2e8f0;
+  padding:14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.section-content {
+  margin-top:12px;
+  display:none;
+}
+
+.controls {
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+
+.card {
+  background:#f8fafc;
+  padding:14px;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+
+.report {
+  border-left:6px solid;
+}
+
+.report.unsolved {
+  border-color:#dc2626;
+  background:#f1f5f9;
+}
+
+.report.solved {
+  border-color:#16a34a;
+  background:#f8fafc;
+}
+
+small { color:var(--muted); display:block; }
+
+.attachment {
+  display:none;
+  margin-top:10px;
+}
+
+.attachment img {
+  max-width:100%;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+}
+</style>
+</head>
+
+<body>
+<div class="dashboard">
+  <h2>ADMIN DASHBOARD</h2>
+
+  <div style="text-align:center;margin-bottom:20px">
+    <button class="btn-logout" onclick="logout()">Logout</button>
+
+  </div>
+
+  <!-- TEACHERS -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('teachersSection')">
+      👩‍🏫 Teacher Accounts
+    </div>
+    <div class="section-content" id="teachersSection">
+
+      <div class="controls">
+        <select id="teacherSort">
+          <option value="az">A–Z</option>
+          <option value="za">Z–A</option>
+        </select>
+      </div>
+
+      <div id="teachers"></div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('reportsSection')">
+      📄 Reports
+    </div>
+    <div class="section-content" id="reportsSection">
+
+      <div class="controls">
+        <select id="reportSort">
+          <option value="newest">Newest → Oldest</option>
+          <option value="oldest">Oldest → Newest</option>
+        </select>
+
+        <input type="date" id="reportDate">
+
+        <select id="sectionSort">
+          <option value="">All Sections</option>
+        </select>
+      </div>
+
+      <div id="reports"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = "http://localhost:5000";
+const admin = JSON.parse(localStorage.getItem("admin"));
+let allTeachers = [];
+let allReports = [];
+
+if (!admin) {
+  alert("Please log in");
+  location.href = "index.html";
+}
+
+function logout() {
+  localStorage.removeItem("admin");
+  location.href = "index.html";
+}
+
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === "block" ? "none" : "block";
+}
+
+/* ===== TEACHERS ===== */
+async function loadTeachers() {
+  const res = await fetch(`${BASE}/api/admin/teachers`, {
+    headers:{
+      "x-admin-username":admin.username,
+      "x-admin-password":admin.password
+    }
+  });
+  allTeachers = await res.json();
+  renderTeachers();
+}
+
+function renderTeachers() {
+  teachers.innerHTML = "";
+  const list = [...allTeachers].sort((a,b) =>
+    teacherSort.value === "az"
+      ? (a.name || "").localeCompare(b.name || "")
+      : (b.name || "").localeCompare(a.name || "")
+  );
+
+  list.forEach(t => {
+    teachers.innerHTML += `
+      <div class="card">
+        <strong>${t.name || "Unnamed"}</strong>
+        <small>${t.classroom || "No Section"}</small><br><br>
+
+        <button class="outline" onclick="resetPassword(${t.id})">
+          Reset Password
+        </button>
+      </div>
+    `;
+  });
+}
+
+/* ===== RESET PASSWORD (SAFE) ===== */
+async function resetPassword(id) {
+  const tempPass = prompt(
+    "Enter a temporary password for this teacher:\n(They can change it after login)"
+  );
+  if (!tempPass) return;
+
+  if (!confirm("Confirm password reset?")) return;
+
+  const fd = new FormData();
+  fd.append("password", tempPass);
+
+  const res = await fetch(`${BASE}/api/teacher/update/${id}`, {
+    method:"POST",
+    body: fd
+  });
+
+  if (res.ok) {
+    alert("✅ Password reset successfully");
+  } else {
+    alert("❌ Password reset failed");
+  }
+}
+
+/* ===== REPORTS ===== */
+async function loadReports() {
+  const res = await fetch(`${BASE}/api/admin/reports`, {
+    headers:{
+      "x-admin-username":admin.username,
+      "x-admin-password":admin.password
+    }
+  });
+
+  const data = await res.json();
+
+  // ✅ DB is the source of truth
+  allReports = data.map(r => ({
+    ...r,
+    solved: r.solved === 1
+  }));
+
+  populateSections();
+  renderReports();
+}
+
+
+function populateSections() {
+  const sections = [...new Set(allReports.map(r => r.teacher_classroom).filter(Boolean))];
+  sectionSort.innerHTML = `<option value="">All Sections</option>`;
+  sections.forEach(s => sectionSort.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleString("en-US", {
+    month:"2-digit",
+    day:"2-digit",
+    year:"2-digit",
+    hour:"numeric",
+    minute:"2-digit",
+    hour12:true
+  });
+}
+
+function renderReports() {
+  reports.innerHTML = "";
+  let list = [...allReports];
+
+  if (reportDate.value)
+    list = list.filter(r => r.created_at.startsWith(reportDate.value));
+
+  if (sectionSort.value)
+    list = list.filter(r => r.teacher_classroom === sectionSort.value);
+
+  list.sort((a,b) =>
+    reportSort.value === "newest"
+      ? new Date(b.created_at) - new Date(a.created_at)
+      : new Date(a.created_at) - new Date(b.created_at)
+  );
+
+  list.forEach(r => {
+    const div = document.createElement("div");
+    div.className = `card report ${r.solved ? "solved" : "unsolved"}`;
+
+    div.innerHTML = `
+      <small>${formatDate(r.created_at)}</small>
+      <small>Section: ${r.teacher_classroom || "Unknown"}</small>
+      <p>${r.message || ""}</p>
+
+      ${r.report_image ? `
+        <button class="outline" onclick="toggleAtt(${r.id})">View Attachment</button>
+        <div class="attachment" id="att-${r.id}">
+          <img src="${r.report_image}">
+        </div>
+      ` : ""}
+
+      <br><br>
+      ${!r.solved
+        ? `<button class="success" onclick="markSolved(${r.id})">Mark as Solved</button>`
+        : `<button class="outline" disabled>Solved</button>`}
+    `;
+    reports.appendChild(div);
+  });
+}
+
+function toggleAtt(id) {
+  const el = document.getElementById("att-" + id);
+  el.style.display = el.style.display === "block" ? "none" : "block";
+}
+
+async function markSolved(id) {
+  await fetch(`${BASE}/api/reports/${id}/solve`, {
+    method: "PUT"
+  });
+
+  // 🔄 Always re-fetch from DB to stay in sync
+  await loadReports();
+}
+
+/* ===== EVENTS ===== */
+teacherSort.onchange = renderTeachers;
+reportSort.onchange = renderReports;
+reportDate.onchange = renderReports;
+sectionSort.onchange = renderReports;
+
+/* ===== INIT ===== */
+loadTeachers();
+loadReports();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Super Admin Dashboard</title>
+
+<style>
+:root {
+  --primary:#4338ca;
+  --danger:#dc2626;
+  --success:#16a34a;
+  --bg:#0f172a;
+  --card:#1e293b;
+  --card-light:#334155;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+}
+
+* { box-sizing:border-box; font-family:"Segoe UI", Arial, sans-serif; }
+
+body {
+  margin:0;
+  background:var(--bg);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  padding:30px 15px;
+  color:var(--text);
+}
+
+.dashboard {
+  width:100%;
+  max-width:1200px;
+  background:var(--card);
+  border-radius:14px;
+  padding:28px;
+  box-shadow:0 20px 40px rgba(0,0,0,.45);
+}
+
+h2 { text-align:center; margin-bottom:20px; }
+
+button, input, select {
+  padding:10px 14px;
+  border-radius:8px;
+  border:none;
+  font-size:14px;
+}
+
+input, select {
+  background:#475569;
+  color:#fff;
+}
+
+button { cursor:pointer; }
+
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-success { background:var(--success); color:#fff; }
+.btn-outline {
+  background:transparent;
+  border:1px solid var(--muted);
+  color:var(--muted);
+}
+
+.section { margin-bottom:22px; }
+
+.section-header {
+  background:var(--card-light);
+  padding:14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.section-content {
+  margin-top:12px;
+  display:none;
+}
+
+.card {
+  background:var(--card-light);
+  padding:14px;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+
+small { color:var(--muted); display:block; }
+
+.attachment {
+  display:none;
+  margin-top:10px;
+}
+
+.attachment img {
+  max-width:100%;
+  border-radius:8px;
+  border:1px solid #64748b;
+}
+
+.msg { margin-top:8px; }
+.success { color:var(--success); }
+.error { color:var(--danger); }
+</style>
+</head>
+
+<body>
+<div class="dashboard">
+  <h2>SUPER ADMIN</h2>
+
+  <div style="text-align:center;margin-bottom:20px">
+    <button class="btn-outline" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('reportsSection')">📄 Reports</div>
+   <div class="section-content" id="reportsSection">
+
+  <!-- REPORT CONTROLS -->
+  <div class="controls">
+    <select id="reportSort">
+      <option value="newest">Newest → Oldest</option>
+      <option value="oldest">Oldest → Newest</option>
+    </select>
+
+    <select id="statusFilter">
+      <option value="all">All</option>
+      <option value="unsolved">Unsolved</option>
+      <option value="solved">Solved</option>
+    </select>
+
+    <input type="date" id="reportDate">
+  </div>
+
+  <div id="reports"></div>
+</div>
+
+
+  <!-- TEACHERS -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('teachersSection')">👩‍🏫 Teacher Accounts</div>
+    <div class="section-content" id="teachersSection">
+
+  <select id="teacherSort">
+    <option value="az">A–Z</option>
+    <option value="za">Z–A</option>
+  </select>
+
+  <div id="teachers"></div>
+</div>
+
+
+  <!-- ADMINS -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('adminsSection')">🧑‍💼 Admin Accounts</div>
+    <div class="section-content" id="adminsSection">
+
+      <div class="card">
+        <h4>Create Admin Account</h4>
+        <input id="newAdminUser" placeholder="Username">
+        <input id="newAdminPass" type="password" placeholder="Temporary Password">
+        <button class="btn-success" onclick="createAdmin()">Create Admin</button>
+        <p id="adminMsg" class="msg"></p>
+      </div>
+
+      <div id="admins"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = "http://localhost:5000";
+const admin = JSON.parse(localStorage.getItem("admin"));
+let allReports = [];
+let allTeachers = [];
+
+
+if (!admin || admin.role !== "super_admin") {
+  alert("Super Admin access only.");
+  location.href = "index.html";
+}
+
+function logout() {
+  localStorage.removeItem("admin");
+  location.href = "index.html";
+}
+
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === "block" ? "none" : "block";
+}
+
+/* ================= REPORTS ================= */
+async function loadReports() {
+  const res = await fetch(`${BASE}/api/admin/reports`, {
+    headers:{
+      "x-admin-username": admin.username,
+      "x-admin-password": admin.password
+    }
+  });
+
+  const data = await res.json();
+
+  // Store data only (no HTML here)
+  allReports = data.map(r => ({
+    ...r,
+    solved: r.solved === 1
+  }));
+
+  renderReports();
+}
+function renderReports() {
+  reports.innerHTML = "";
+
+  let list = [...allReports];
+
+  // 🔹 Filter by status
+  if (statusFilter.value !== "all") {
+    list = list.filter(r =>
+      statusFilter.value === "solved" ? r.solved : !r.solved
+    );
+  }
+
+  // 🔹 Filter by date
+  if (reportDate.value) {
+    list = list.filter(r =>
+      r.created_at.startsWith(reportDate.value)
+    );
+  }
+
+  // 🔹 Sort by date
+  list.sort((a, b) =>
+    reportSort.value === "newest"
+      ? new Date(b.created_at) - new Date(a.created_at)
+      : new Date(a.created_at) - new Date(b.created_at)
+  );
+
+  if (!list.length) {
+    reports.innerHTML =
+      "<p style='text-align:center;color:#94a3b8'>No reports found.</p>";
+    return;
+  }
+
+  list.forEach(r => {
+    reports.innerHTML += `
+      <div class="card report ${r.solved ? "solved" : "unsolved"}">
+        <small>${new Date(r.created_at).toLocaleString()}</small>
+        <small>Section: ${r.teacher_classroom || "Unknown"}</small>
+        <p>${r.message || ""}</p>
+
+        ${r.report_image ? `
+          <button class="btn-outline" onclick="toggleAtt(${r.id})">
+            View Attachment
+          </button>
+          <div class="attachment" id="att-${r.id}">
+            <img src="${r.report_image}">
+          </div>
+        ` : ""}
+
+        <br><br>
+
+        ${!r.solved
+          ? `<button class="btn-success" onclick="markSolved(${r.id})">
+              Mark as Solved
+            </button>`
+          : `<button class="btn-outline" disabled>Solved</button>`
+        }
+
+        <button class="btn-danger" onclick="deleteReport(${r.id})">
+          Delete
+        </button>
+      </div>
+    `;
+  });
+}
+
+async function markSolved(id) {
+  await fetch(`${BASE}/api/reports/${id}/solve`, {
+    method: "PUT"
+  });
+
+  loadReports(); // refresh from DB
+}
+
+
+async function deleteReport(id) {
+  if (!confirm("Delete this report?")) return;
+
+  const res = await fetch(`${BASE}/api/super/reports/${id}`, {
+    method:"DELETE",
+    headers:{
+      "x-admin-username":admin.username,
+      "x-admin-password":admin.password
+    }
+  });
+
+  if (!res.ok) {
+    alert("❌ Failed to delete report");
+    return;
+  }
+
+  loadReports();
+}
+
+/* ================= TEACHERS ================= */
+async function loadTeachers() {
+  const res = await fetch(`${BASE}/api/admin/teachers`, {
+    headers:{
+      "x-admin-username": admin.username,
+      "x-admin-password": admin.password
+    }
+  });
+  allTeachers = await res.json();
+  renderTeachers();
+}
+
+function renderTeachers() {
+  teachers.innerHTML = "";
+
+  const list = [...allTeachers].sort((a,b) =>
+    teacherSort.value === "az"
+      ? (a.name || "").localeCompare(b.name || "")
+      : (b.name || "").localeCompare(a.name || "")
+  );
+
+  list.forEach(t => {
+    teachers.innerHTML += `
+      <div class="card">
+        <strong>${t.name || "Unnamed"}</strong>
+        <small>${t.classroom || "No Section"}</small><br><br>
+        <button class="btn-danger" onclick="deleteTeacher(${t.id})">Delete</button>
+      </div>
+    `;
+  });
+}
+
+async function deleteTeacher(id) {
+  if (!confirm("Delete this teacher and all reports?")) return;
+
+  const res = await fetch(`${BASE}/api/super/teachers/${id}`, {
+    method:"DELETE",
+    headers:{
+      "x-admin-username":admin.username,
+      "x-admin-password":admin.password
+    }
+  });
+
+  if (!res.ok) {
+    alert("❌ Failed to delete teacher");
+    return;
+  }
+
+  loadTeachers();
+  loadReports();
+}
+
+/* ================= ADMINS ================= */
+async function loadAdmins() {
+  const res = await fetch(`${BASE}/api/admin/list`, {
+    headers:{
+      "x-admin-username":admin.username,
+      "x-admin-password":admin.password
+    }
+  });
+  const list = await res.json();
+  admins.innerHTML = "";
+
+  list.forEach(a => {
+   admins.innerHTML += `
+  <div class="card">
+    <strong>${a.username}</strong>
+    <small> (${a.role})</small><br><br>
+
+    <button class="btn-primary" onclick="resetAdminPassword(${a.id})">
+      Reset Password
+    </button>
+
+    ${a.id !== admin.id
+      ? `<button class="btn-danger" onclick="deleteAdmin(${a.id})">Delete</button>`
+      : `<small>(This is you)</small>`}
+  </div>
+`;
+  });
+}
+
+async function deleteAdmin(id) {
+  if (!confirm("Delete this admin account?")) return;
+
+  const res = await fetch(`${BASE}/api/super/admins/${id}`, {
+    method:"DELETE",
+    headers:{
+      "x-admin-username":admin.username,
+      "x-admin-password":admin.password
+    }
+  });
+
+  if (!res.ok) {
+    alert("❌ Failed to delete admin");
+    return;
+  }
+
+  loadAdmins();
+}
+
+/* ================= CREATE ADMIN ================= */
+async function createAdmin() {
+  adminMsg.textContent = "";
+  const username = newAdminUser.value.trim();
+  const password = newAdminPass.value.trim();
+
+  if (!username || !password) {
+    adminMsg.textContent = "❌ Fill in all fields";
+    adminMsg.className = "msg error";
+    return;
+  }
+
+  const res = await fetch(`${BASE}/api/super/admins`, {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "x-admin-username":admin.username,
+      "x-admin-password":admin.password
+    },
+    body:JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    adminMsg.textContent = "❌ " + (data.error || "Create failed");
+    adminMsg.className = "msg error";
+    return;
+  }
+
+  adminMsg.textContent = "✅ Admin created";
+  adminMsg.className = "msg success";
+  newAdminUser.value = "";
+  newAdminPass.value = "";
+
+  loadAdmins();
+}
+
+function toggleAtt(id) {
+  const el = document.getElementById("att-" + id);
+  el.style.display = el.style.display === "block" ? "none" : "block";
+}
+/* ===== REPORT FILTER EVENTS ===== */
+reportSort.onchange = renderReports;
+statusFilter.onchange = renderReports;
+reportDate.onchange = renderReports;
+
+/* ===== TEACHER SORT EVENT ===== */
+teacherSort.onchange = renderTeachers;
+
+/* ================= INIT ================= */
+loadReports();
+loadTeachers();
+loadAdmins();
+async function resetAdminPassword(id) {
+
+  const newPass = prompt("Enter new password for this admin:");
+
+  if (!newPass) return;
+
+  if (!confirm("Confirm password reset?")) return;
+
+  const res = await fetch(`${BASE}/api/super/admin/reset/${id}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-username": admin.username,
+      "x-admin-password": admin.password
+    },
+    body: JSON.stringify({ password: newPass })
+  });
+
+  if (res.ok) {
+    alert("✅ Admin password reset successfully.");
+  } else {
+    alert("❌ Password reset failed.");
+  }
+
+}
+</script>
+
+
+</body>
+</html>

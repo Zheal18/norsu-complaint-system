@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Login</title>
+
+<style>
+/* SAME PALETTE AS TEACHER */
+:root {
+  --primary:#4f46e5;
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --danger:#ef4444;
+}
+* { box-sizing:border-box; font-family:"Segoe UI", Arial, sans-serif; }
+body {
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+.card {
+  width:100%;
+  max-width:380px;
+  background:var(--card);
+  padding:30px;
+  border-radius:14px;
+  box-shadow:0 20px 40px rgba(0,0,0,.08);
+}
+h2 { text-align:center; margin-bottom:20px; }
+input {
+  width:100%;
+  padding:12px;
+  margin-bottom:16px;
+  border-radius:8px;
+  border:1px solid #d1d5db;
+}
+button {
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  background:var(--primary);
+  color:#fff;
+  font-size:15px;
+}
+#error { text-align:center; color:var(--danger); margin-top:10px; }
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2>Admin Login</h2>
+
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+
+  <button onclick="login('admin')">Login</button>
+  <p id="error"></p>
+</div>
+
+<script>
+async function login(role){
+  error.textContent="";
+  const username=username.value.trim();
+  const password=password.value.trim();
+
+  const endpoint="/api/admin/login";
+
+  try{
+    const res=await fetch(endpoint,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ username, password })
+    });
+
+    const data=await res.json();
+    if(!res.ok){
+      error.textContent=data.error;
+      return;
+    }
+
+    localStorage.setItem("admin",JSON.stringify(data.admin));
+
+    if(data.admin.role==="super_admin"){
+      window.location.href="super_admin_dashboard.html";
+    }else{
+      window.location.href="admin_dashboard.html";
+    }
+  }catch{
+    error.textContent="Server error";
+  }
+}
+</script>
+</body>
+</html>

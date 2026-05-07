@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Teacher Dashboard</title>
+
+<style>
+body {
+  margin: 0;
+  background: #eef3f8;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.dashboard {
+  width: 100%;
+  max-width: 950px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 30px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.08);
+}
+
+h2, h3 { text-align: center; }
+
+.greeting {
+  text-align: center;
+  color: #6b7c93;
+  margin-bottom: 20px;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e1e8f0;
+}
+
+.profile img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #4a6fa5;
+}
+
+.profile-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.primary { background: #4a6fa5; color: #fff; }
+.danger { background: #c0392b; color: #fff; }
+.outline {
+  background: transparent;
+  border: 1px solid #4a6fa5;
+  color: #4a6fa5;
+}
+
+.qr {
+  margin-top: 30px;
+  text-align: center;
+  padding: 20px;
+  background: #f4f8fc;
+  border-radius: 14px;
+}
+
+.qr img { width: 200px; }
+
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 25px 0;
+}
+
+select, input[type="date"] {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.report {
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border-left: 6px solid;
+}
+
+.report.unsolved {
+  background: #f1f5f9;
+  border-color: #dc2626;
+}
+
+.report.solved {
+  background: #f8fafc;
+  border-color: #16a34a;
+}
+
+.report small {
+  display: block;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.attachment {
+  display: none;
+  margin-top: 10px;
+}
+
+.attachment img {
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+}
+</style>
+</head>
+
+<body>
+<div class="dashboard">
+  <h2>Teacher Dashboard</h2>
+  <div class="greeting" id="greeting"></div>
+
+  <div class="profile">
+    <img id="profilePic">
+    <div>
+      <strong id="teacherName"></strong>
+      <div id="teacherClassroom"></div>
+    </div>
+    <div class="profile-actions">
+      <button class="primary" onclick="goProfile()">Edit Profile</button>
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="qr">
+    <h3>Your QR Code</h3>
+    <img id="qrCode">
+    <br><br>
+    <button class="primary" onclick="downloadQR()">Download QR</button>
+  </div>
+
+  <h3 style="margin-top:30px">Anonymous Reports</h3>
+
+  <div class="controls">
+    <select id="sortOrder">
+      <option value="newest">Newest to Oldest</option>
+      <option value="oldest">Oldest to Newest</option>
+    </select>
+
+    <select id="statusFilter">
+      <option value="all">All</option>
+      <option value="unsolved">Unsolved</option>
+      <option value="solved">Solved</option>
+    </select>
+
+    <input type="date" id="dateFilter">
+  </div>
+
+  <div id="reports"></div>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const BASE_URL = "http://localhost:5000";
+const teacher = JSON.parse(localStorage.getItem("teacher"));
+
+let allReports = [];
+let qrDataUrl = null;
+
+if (!teacher || !teacher.id) {
+  alert("Please log in first.");
+  location.href = "index.html";
+}
+
+/* ================= PROFILE ================= */
+function renderProfile() {
+  const name = teacher.name?.trim() || teacher.username || "Teacher";
+  greeting.textContent = `Hello, Teacher ${name}!`;
+  teacherName.textContent = name;
+  teacherClassroom.textContent = teacher.classroom
+    ? "Classroom: " + teacher.classroom
+    : "";
+
+  profilePic.src = teacher.profile_pic
+    ? `${BASE_URL}/uploads/${teacher.profile_pic}?t=${Date.now()}`
+    : "https://via.placeholder.com/96";
+}
+
+/* ================= QR CODE ================= */
+async function loadQR() {
+  try {
+    const img = document.getElementById("qrCode");
+    if (!img) {
+      console.error("QR image element not found");
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/api/teacher/${teacher.id}/qrcode`);
+    if (!res.ok) throw new Error("QR API unavailable");
+
+    const data = await res.json();
+    qrDataUrl = data.qrCode;
+
+    img.onload = () => console.log("✅ QR loaded");
+    img.onerror = () => console.error("❌ QR failed to load");
+    img.src = qrDataUrl;
+
+  } catch (err) {
+    console.error("QR load error:", err);
+  }
+}
+
+
+function downloadQR() {
+  if (!qrDataUrl) {
+    alert("QR not loaded yet.");
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = qrDataUrl;
+  a.download = `teacher-${teacher.id}-qr.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/* ================= REPORTS ================= */
+async function loadReports() {
+  try {
+    const res = await fetch(`${BASE_URL}/api/teacher/${teacher.id}/reports`);
+    if (!res.ok) throw new Error("Failed to load reports");
+
+    const data = await res.json();
+   allReports = data.map(r => ({
+  ...r,
+  solved: r.solved === 1
+}));
+    renderReports();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleString("en-US", {
+    timeZone: "Asia/Manila",
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+function renderReports() {
+  reports.innerHTML = "";
+  let list = [...allReports];
+
+  if (statusFilter.value !== "all") {
+    list = list.filter(r =>
+      statusFilter.value === "solved" ? r.solved : !r.solved
+    );
+  }
+
+  if (dateFilter.value) {
+    list = list.filter(r => r.created_at.startsWith(dateFilter.value));
+  }
+
+  list.sort((a, b) =>
+    sortOrder.value === "newest"
+      ? new Date(b.created_at) - new Date(a.created_at)
+      : new Date(a.created_at) - new Date(b.created_at)
+  );
+
+  if (!list.length) {
+    reports.innerHTML =
+      "<p style='text-align:center;color:#6b7280'>No reports found.</p>";
+    return;
+  }
+
+  list.forEach(r => {
+    const div = document.createElement("div");
+    div.className = `report ${r.solved ? "solved" : "unsolved"}`;
+
+    div.innerHTML = `
+      <small>${formatDate(r.created_at)}</small>
+      <p>${r.message || ""}</p>
+
+      ${r.report_image ? `
+        <button class="outline" onclick="toggleAttachment(${r.id})">
+          View Attachment
+        </button>
+        <div class="attachment" id="att-${r.id}">
+          <img src="${BASE_URL}/uploads/${r.report_image}">
+        </div>
+      ` : ""}
+
+      <br>
+      ${!r.solved
+        ? `<button class="primary" onclick="markSolved(${r.id})">Mark as Solved</button>`
+        : `<button class="outline" disabled>Solved</button>`}
+    `;
+    reports.appendChild(div);
+  });
+}
+
+function toggleAttachment(id) {
+  const el = document.getElementById("att-" + id);
+  el.style.display = el.style.display === "block" ? "none" : "block";
+}
+
+async function markSolved(id) {
+  await fetch(`${BASE_URL}/api/reports/${id}/solve`, {
+    method: "PUT"
+  });
+  loadReports();
+}
+
+/* ================= NAV ================= */
+function goProfile() {
+  location.href = "teacher_profile.html";
+}
+
+function logout() {
+  localStorage.removeItem("teacher");
+  location.href = "index.html";
+}
+
+/* ================= EVENTS ================= */
+sortOrder.onchange = renderReports;
+statusFilter.onchange = renderReports;
+dateFilter.onchange = renderReports;
+
+/* ================= INIT ================= */
+renderProfile();
+loadQR();
+loadReports();
+</script>
+</body>
+</html>

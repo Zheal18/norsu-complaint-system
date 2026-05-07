@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Teacher Login</title>
+
+<style>
+:root {
+  --primary:#4f46e5;
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --danger:#ef4444;
+}
+* { box-sizing:border-box; font-family:"Segoe UI", Arial, sans-serif; }
+
+body {
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+
+.card {
+  width:100%;
+  max-width:380px;
+  background:var(--card);
+  padding:30px;
+  border-radius:14px;
+  box-shadow:0 20px 40px rgba(0,0,0,.08);
+}
+
+h2 { text-align:center; margin-bottom:20px; color:var(--text); }
+
+label { font-size:14px; color:var(--muted); }
+
+input {
+  width:100%;
+  padding:12px;
+  margin:6px 0 16px;
+  border-radius:8px;
+  border:1px solid #d1d5db;
+}
+
+button {
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  background:var(--primary);
+  color:#fff;
+  font-size:15px;
+  cursor:pointer;
+}
+
+#error { text-align:center; color:var(--danger); margin-top:10px; }
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2>Teacher Login</h2>
+
+  <label>Username</label>
+  <input id="username">
+
+  <label>Password</label>
+  <input id="password" type="password">
+
+  <button onclick="login('teacher')">Login</button>
+  <p id="error"></p>
+</div>
+
+<script>
+async function login(role){
+  error.textContent="";
+  const username=document.getElementById("username").value.trim();
+  const password=document.getElementById("password").value.trim();
+
+  if(!username||!password){
+    error.textContent="Please fill in all fields";
+    return;
+  }
+
+  const endpoint="/api/teacher/login";
+
+  try{
+    const res=await fetch(endpoint,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ username, password })
+    });
+
+    const data=await res.json();
+    if(!res.ok){
+      error.textContent=data.error||"Login failed";
+      return;
+    }
+
+    localStorage.setItem("teacher",JSON.stringify(data.teacher));
+    window.location.href="teacher_dashboard.html";
+  }catch{
+    error.textContent="Server error";
+  }
+}
+</script>
+</body>
+</html>

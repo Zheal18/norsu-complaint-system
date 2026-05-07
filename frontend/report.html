@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complaint Filing Form</title>
+
+<style>
+:root {
+  --primary: #1e3a8a;
+  --secondary: #2563eb;
+  --accent: #16a34a;
+  --bg: #eef2f7;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #d1d5db;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 480px;
+  background: var(--card);
+  padding: 30px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+h2 {
+  text-align: center;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 5px;
+  display: block;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+textarea {
+  min-height: 100px;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.agree {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--secondary);
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--primary);
+}
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+.message {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.error { color: red; }
+.success { color: green; }
+
+.terms-check {
+  display: flex;
+  justify-content: center;   /* 🔥 centers everything */
+  margin-top: 10px;
+}
+
+.terms-check label {
+  display: flex;
+  align-items: center;       /* 🔥 vertical alignment fix */
+  gap: 8px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.terms-check input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  transform: scale(1.1);
+  cursor: pointer;
+}
+#conversationBox {
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 5px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Complaint Filing Form</h2>
+<p style="text-align:center; font-size:13px; color:#6b7280; margin-bottom:20px;">
+  NORSU Online Reporting System
+</p>
+
+<form id="reportForm">
+
+<!-- ===== COMPLAINANT ===== -->
+<div class="section">
+<label>Complainant Type *</label>
+<select id="complainantType">
+  <option value="">Select</option>
+  <option value="student">Student</option>
+  <option value="instructor">Instructor</option>
+</select>
+
+<div id="cStudent" style="display:none;">
+  <input type="text" id="c_name" placeholder="Full Name">
+  <input type="text" id="c_year" placeholder="Year Level">
+  <input type="text" id="c_program" placeholder="Program/Course">
+</div>
+
+<div id="cInstructor" style="display:none;">
+  <input type="text" id="c_instructor_name" placeholder="Full Name">
+</div>
+</div>
+
+<!-- ===== PERSON COMPLAINED ===== -->
+<div class="section">
+<label>Person Complained *</label>
+<select id="personType">
+  <option value="">Select</option>
+  <option value="student">Student</option>
+  <option value="instructor">Instructor</option>
+</select>
+
+<div id="pStudent" style="display:none;">
+  <input type="text" id="p_name" placeholder="Full Name">
+  <input type="text" id="p_year" placeholder="Year Level">
+  <input type="text" id="p_program" placeholder="Program/Course">
+</div>
+
+<div id="pInstructor" style="display:none;">
+  <input type="text" id="p_instructor_name" placeholder="Full Name">
+</div>
+</div>
+
+<!-- ===== INCIDENT ===== -->
+<div class="section">
+<label>Incident Report *</label>
+
+<div style="
+  background:#f9fafb;
+  border-left:4px solid #2563eb;
+  padding:10px;
+  border-radius:6px;
+  font-size:13px;
+  color:#374151;
+  margin-bottom:10px;
+">
+  Please provide a clear and specific description of the incident.  
+  Include <strong>date, time, location, and what happened</strong>.
+</div>
+
+<textarea id="reportText" placeholder="Example: On March 10, 2026 at around 3:00 PM in the school hallway, a student was being bullied by..."></textarea>
+</div>
+
+<!-- BACKEND FIELD -->
+
+<!-- OPTIONAL -->
+<label>Upload Evidence (optional)</label>
+<input type="file" id="image" accept="image/*,.pdf">
+
+<!-- ===== TERMS SECTION ===== -->
+<div class="section">
+
+  <label>Terms and Conditions *</label>
+
+  <div style="
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 14px;
+    background: #f9fafb;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  ">
+    I certify that the details provided in this report are true, accurate, and made in good faith. I understand that submitting false or misleading information may result in disciplinary action.
+    <br><br>
+    This system complies with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>. All submitted data will be securely stored and accessed only by authorized personnel.
+    <br><br>
+    All information will be handled with strict confidentiality and used solely for investigation and resolution purposes.
+    <br><br>
+    By submitting this report, you consent to the collection and processing of your data in accordance with applicable laws.
+  </div>
+
+  <!-- ✅ ONLY ONE CHECKBOX -->
+  <div class="terms-check">
+  <label>
+    <input type="checkbox" id="agree">
+    <span>I have read and agree to the Terms and Conditions</span>
+  </label>
+</div>
+
+</div>
+
+<!-- ===== SUBMIT AND TRACK BUTTON (ALONE BELOW) ===== -->
+<button type="submit" id="submitBtn" disabled>
+  Submit Report
+</button>
+<p id="messageBox" class="message"></p>
+
+<hr style="margin:25px 0;">
+
+<h3 style="text-align:center;">Track Your Report</h3>
+
+<input type="text" id="trackTicket" placeholder="Enter your Ticket ID" style="width:100%;">
+
+<button type="button" onclick="trackReport()" style="margin-top:10px;">
+  Check Status
+</button>
+
+<p id="trackResult" class="message"></p>
+<hr>
+
+<h3 style="text-align:center;">Conversation</h3>
+
+<div id="conversationBox"></div>
+
+<textarea id="replyBox" placeholder="Type your reply..." style="width:100%;margin-top:10px;"></textarea>
+
+<button type="button" onclick="sendReply()" style="margin-top:5px;">
+  Send Reply
+</button>
+
+<script>
+const BASE_URL = window.location.origin;
+
+/* ===== GET ELEMENTS (VERY IMPORTANT) ===== */
+const reportForm = document.getElementById("reportForm");
+const submitBtn = document.getElementById("submitBtn");
+const agreeCheck = document.getElementById("agree");
+const messageBox = document.getElementById("messageBox");
+
+const complainantType = document.getElementById("complainantType");
+const personType = document.getElementById("personType");
+
+const cStudent = document.getElementById("cStudent");
+const cInstructor = document.getElementById("cInstructor");
+
+const pStudent = document.getElementById("pStudent");
+const pInstructor = document.getElementById("pInstructor");
+
+const c_name = document.getElementById("c_name");
+const c_year = document.getElementById("c_year");
+const c_program = document.getElementById("c_program");
+const c_instructor_name = document.getElementById("c_instructor_name");
+
+const p_name = document.getElementById("p_name");
+const p_year = document.getElementById("p_year");
+const p_program = document.getElementById("p_program");
+const p_instructor_name = document.getElementById("p_instructor_name");
+
+const reportText = document.getElementById("reportText");
+
+/* ===== TOGGLE ===== */
+complainantType.onchange = () => {
+  cStudent.style.display = complainantType.value === "student" ? "block" : "none";
+  cInstructor.style.display = complainantType.value === "instructor" ? "block" : "none";
+};
+
+personType.onchange = () => {
+  pStudent.style.display = personType.value === "student" ? "block" : "none";
+  pInstructor.style.display = personType.value === "instructor" ? "block" : "none";
+};
+
+/* ===== ENABLE BUTTON ===== */
+submitBtn.disabled = true;
+
+agreeCheck.addEventListener("change", function () {
+  submitBtn.disabled = !this.checked;
+});
+
+
+/* ===== SUBMIT ===== */
+reportForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  if (!complainantType.value || !personType.value) {
+    return showError("Select complainant and person type.");
+  }
+
+  if (!reportText.value.trim()) {
+    return showError("Please provide the incident details.");
+  }
+
+  if (!agreeCheck.checked) {
+    return showError("You must agree to the terms.");
+  }
+
+  const formData = new FormData();
+
+formData.append("complainant_type", complainantType.value);
+formData.append("respondent_type", personType.value);
+
+// complainant
+if (complainantType.value === "student") {
+  formData.append("complainant_name", c_name.value);
+} else {
+  formData.append("complainant_name", c_instructor_name.value);
+}
+
+// respondent
+if (personType.value === "student") {
+  formData.append("respondent_name", p_name.value);
+} else {
+  formData.append("respondent_name", p_instructor_name.value);
+}
+
+// description
+formData.append("description", reportText.value);
+
+// file
+const fileInput = document.getElementById("image");
+if (fileInput.files.length > 0) {
+  formData.append("report_image", fileInput.files[0]);
+}
+
+  try {
+    const res = await fetch(`/api/report`, {
+  method: "POST",
+  body: formData
+});
+
+if (!res.ok) {
+  throw new Error("Server error");
+}
+
+const data = await res.json();
+
+    if (data.success) {
+      showSuccess(`Your Complaint ID is: ${data.ticket}
+Please save this for tracking.`);;
+      reportForm.reset();
+      cStudent.style.display = "none";
+      cInstructor.style.display = "none";
+      pStudent.style.display = "none";
+      pInstructor.style.display = "none";
+      submitBtn.disabled = true; // reset button
+    } else {
+      showError("Submission failed.");
+    }
+
+  } catch (err) {
+    console.error(err);
+    showError("Network error.");
+  }
+});
+
+/* ===== UI MESSAGES ===== */
+function showError(msg) {
+  messageBox.textContent = "❌ " + msg;
+  messageBox.className = "message error";
+}
+
+function showSuccess(msg) {
+  messageBox.innerHTML = "✅ Submitted<br>" + msg;
+  messageBox.className = "message success";
+}
+/* ===== TRACK REPORT ====*/
+async function trackReport() {
+  const ticket = document.getElementById("trackTicket").value.trim();
+  const resultBox = document.getElementById("trackResult");
+
+  if (!ticket) {
+    resultBox.textContent = "❌ Enter a ticket number";
+    resultBox.className = "message error";
+    document.getElementById("conversationBox").innerHTML = "";
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/report/status/${ticket}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      resultBox.textContent = "❌ Ticket not found";
+      resultBox.className = "message error";
+      document.getElementById("conversationBox").innerHTML = "";
+      return;
+    }
+
+    const date = new Date(data.created_at);
+
+    const formattedDate = date.toLocaleString("en-US", {
+      timeZone: "Asia/Manila",
+      month: "2-digit",
+      day: "2-digit",
+      year: "2-digit",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
+
+    resultBox.innerHTML = `
+      ✅ Status: <strong>${data.status}</strong><br>
+      📅 Submitted: ${formattedDate}
+    `;
+
+    loadConversation(ticket); // ✅ keep this
+
+    resultBox.className = "message success";
+
+  } catch (err) {
+    console.error(err);
+    resultBox.textContent = "❌ Network error";
+    resultBox.className = "message error";
+  }
+}
+/*=====CONVERSATION=====*/
+async function loadConversation(ticket) {
+  const res = await fetch(`/api/report/messages/${ticket}`);
+  const data = (await res.json()) || [];
+
+  const box = document.getElementById("conversationBox")
+  box.innerHTML = "";
+
+  box.innerHTML = data.map(m => `
+  <div style="
+    display: flex;
+    justify-content: ${m.sender === "admin" ? "flex-start" : "flex-end"};
+    margin-bottom: 10px;
+  ">
+    <div style="
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      word-wrap: break-word;
+      background: ${m.sender === "admin" ? "#2563eb" : "#e5e7eb"};
+      color: ${m.sender === "admin" ? "#fff" : "#111"};
+      border-bottom-${m.sender === "admin" ? "left" : "right"}-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    ">
+<strong style="display:block;font-size:11px;opacity:0.7;">
+  ${m.sender === "admin" ? "Admin" : "You"}
+</strong>
+      ${m.message}
+    </div>
+  </div>
+`).join("");
+  box.scrollTo({
+  top: box.scrollHeight,
+  behavior: "smooth"
+});
+}
+/*==== REPLY =====*/
+async function sendReply() {
+  const ticket = document.getElementById("trackTicket").value.trim();
+  const msg = document.getElementById("replyBox").value.trim();
+  if (!ticket) return alert("Enter ticket ID first");
+
+  if (!msg) return alert("Enter a message");
+
+  const res = await fetch(`/api/report/reply/${ticket}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg })
+  });
+
+  if (!res.ok) return alert("Failed to send");
+
+  document.getElementById("replyBox").value = "";
+  loadConversation(ticket);
+}
+</script>
+
+</body>
+</html>

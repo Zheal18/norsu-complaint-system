@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit Teacher Profile</title>
+
+<style>
+:root {
+  --primary: #4f46e5;
+  --bg: #f2f6fc;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #d1d5db;
+  --danger: #dc2626;
+  --success: #16a34a;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.profile-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--card);
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+h2 {
+  text-align: center;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.profile-pic {
+  display: block;
+  margin: 0 auto 20px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--primary);
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="file"] {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #111827;
+  margin-top: 10px;
+}
+
+.message {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.message.error { color: var(--danger); }
+.message.success { color: var(--success); }
+</style>
+</head>
+
+<body>
+<div class="profile-card">
+  <h2>Edit Profile</h2>
+
+  <img id="profilePic" class="profile-pic" alt="Profile Picture">
+
+  <form id="profileForm">
+    <label>Full Name</label>
+    <input type="text" id="name">
+
+    <label>Classroom</label>
+    <input type="text" id="classroom" required>
+
+    <label>New Password</label>
+    <input type="password" id="newPassword">
+
+    <label>Confirm Password</label>
+    <input type="password" id="confirmPassword">
+
+    <label>Profile Picture</label>
+    <input type="file" id="profileInput" accept="image/*">
+
+    <button type="submit" class="btn-primary">Update Profile</button>
+  </form>
+
+  <div id="msg" class="message"></div>
+
+  <button class="btn-secondary" onclick="goBack()">Back to Dashboard</button>
+</div>
+
+<script>
+const BASE_URL = "http://192.168.1.59:5000";
+const teacher = JSON.parse(localStorage.getItem("teacher"));
+
+if (!teacher || !teacher.id) {
+  alert("Please log in first");
+  location.href = "index.html";
+}
+
+/* =====================
+   LOAD CURRENT DATA
+===================== */
+document.getElementById("name").value = teacher.name || "";
+document.getElementById("classroom").value = teacher.classroom || "";
+
+const profilePic = document.getElementById("profilePic");
+profilePic.src = teacher.profile_pic
+  ? `${BASE_URL}/uploads/${teacher.profile_pic}`
+  : "https://via.placeholder.com/110";
+
+document.getElementById("profileInput").onchange = e => {
+  if (e.target.files[0]) {
+    profilePic.src = URL.createObjectURL(e.target.files[0]);
+  }
+};
+
+/* =====================
+   SUBMIT UPDATE (FIXED)
+===================== */
+document.getElementById("profileForm").onsubmit = async e => {
+  e.preventDefault();
+  const msg = document.getElementById("msg");
+  msg.textContent = "";
+  msg.className = "message";
+
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+
+  if (newPassword && newPassword !== confirmPassword) {
+    msg.textContent = "Passwords do not match";
+    msg.classList.add("error");
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append("name", document.getElementById("name").value.trim());
+  fd.append("classroom", document.getElementById("classroom").value.trim());
+
+  if (newPassword) fd.append("password", newPassword);
+  const fileInput = document.getElementById("profileInput");
+  if (fileInput.files[0]) fd.append("profile_pic", fileInput.files[0]);
+
+  try {
+    const res = await fetch(
+      `${BASE_URL}/api/teacher/update/${teacher.id}`,
+      { method: "POST", body: fd }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      msg.textContent = "Update failed";
+      msg.classList.add("error");
+      return;
+    }
+
+    /* ✅ CRITICAL FIX:
+       Replace localStorage with BACKEND data ONLY
+    */
+    localStorage.setItem(
+      "teacher",
+      JSON.stringify(data.teacher)
+    );
+
+    msg.textContent = "Profile updated successfully";
+    msg.classList.add("success");
+
+    setTimeout(() => {
+      location.href = "teacher_dashboard.html";
+    }, 600);
+
+  } catch (err) {
+    console.error(err);
+    msg.textContent = "Server error";
+    msg.classList.add("error");
+  }
+};
+
+function goBack() {
+  location.href = "teacher_dashboard.html";
+}
+</script>
+</body>
+</html>

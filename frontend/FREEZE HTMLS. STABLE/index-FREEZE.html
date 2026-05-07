@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Login</title>
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --secondary: #22c55e;
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+  margin: 0;
+  min-height: 100vh;
+
+  background:
+    linear-gradient(
+      to right,
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,255,255,0.9) 35%,
+      rgba(255,255,255,0.6) 60%,
+      rgba(255,255,255,0.2) 80%,
+      rgba(255,255,255,0) 100%
+    ),
+    url("images/login-bg.jpg");
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 40px;
+}
+
+
+    .login-card {
+  width: 100%;
+  max-width: 400px;
+  background: rgba(255,255,255,0.98);
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+}
+
+
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 15px;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.95;
+    }
+
+    .links {
+      margin-top: 14px;
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .links a {
+      color: var(--primary);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .links a:hover {
+      text-decoration: underline;
+    }
+
+    .register {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .register a {
+      color: var(--secondary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .register a:hover {
+      text-decoration: underline;
+    }
+
+    .error {
+      text-align: center;
+      margin-top: 12px;
+      color: var(--danger);
+      font-size: 14px;
+    }
+@media (max-width: 768px) {
+  body {
+    justify-content: center;
+    padding: 20px;
+
+    background:
+      linear-gradient(
+        rgba(255,255,255,0.95),
+        rgba(255,255,255,0.95)
+      ),
+      url("images/bg.jpg");
+  }
+}
+
+  </style>
+</head>
+
+<body>
+  <div class="login-card">
+    <h2>Welcome Back</h2>
+    <p class="subtitle">Sign in to continue</p>
+
+    <form id="loginForm">
+      <label for="role">Login as</label>
+      <select id="role">
+        <option value="teacher">Teacher</option>
+        <option value="admin">Administrator</option>
+      </select>
+
+      <label for="username">Username</label>
+      <input id="username" type="text" required />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required />
+
+      <button type="submit">Sign In</button>
+    </form>
+
+    <div class="links">
+      <a onclick="forgotPassword()">Forgot Password?</a>
+    </div>
+
+    <div class="register">
+      Teacher without an account?
+      <a href="teacher_register.html">Register here</a>
+    </div>
+
+    <p id="errorMessage" class="error"></p>
+  </div>
+
+  <script>
+    const BASE_URL = "http://localhost:5000";
+    const form = document.getElementById("loginForm");
+    const errorMessage = document.getElementById("errorMessage");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMessage.textContent = "";
+
+      const role = document.getElementById("role").value;
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      const endpoint =
+        role === "teacher"
+          ? "/api/teacher/login"
+          : "/api/admin/login";
+
+      try {
+        const res = await fetch(`${BASE_URL}${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          errorMessage.textContent = data.error || "Login failed";
+          return;
+        }
+
+        /* ===============================
+           SAVE SESSION (FINAL & CORRECT)
+        ================================ */
+        if (role === "teacher") {
+          localStorage.setItem(
+            "teacher",
+            JSON.stringify(data.teacher)
+          );
+          window.location.href = "teacher_dashboard.html";
+        } else {
+          localStorage.setItem(
+            "admin",
+            JSON.stringify(data.admin)
+          );
+
+          if (data.admin.role === "super_admin") {
+            window.location.href = "super_admin_dashboard.html";
+          } else {
+            window.location.href = "admin_dashboard.html";
+          }
+        }
+
+      } catch (err) {
+        console.error(err);
+        errorMessage.textContent = "Server error. Please try again.";
+      }
+    });
+
+    function forgotPassword() {
+      alert(
+`Password Reset Policy
+
+• Teachers: Please contact your school administrator.
+• Administrators: Please contact the Super Administrator.
+• Password resets are handled securely by authorized personnel only.`
+      );
+    }
+  </script>
+</body>
+</html>
