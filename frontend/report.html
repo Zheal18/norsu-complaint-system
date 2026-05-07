@@ -285,7 +285,7 @@ button:disabled {
 </button>
 
 <script>
-const BASE_URL = window.location.origin;
+const BASE_URL = "https://norsu-complaint-system.onrender.com";
 
 /* ===== GET ELEMENTS (VERY IMPORTANT) ===== */
 const reportForm = document.getElementById("reportForm");
@@ -378,7 +378,7 @@ if (fileInput.files.length > 0) {
 }
 
   try {
-    const res = await fetch(`/api/report`, {
+    const res = await fetch(`${BASE_URL}/api/report`, {
   method: "POST",
   body: formData
 });
@@ -431,7 +431,7 @@ async function trackReport() {
   }
 
   try {
-    const res = await fetch(`/api/report/status/${ticket}`);
+    const res = await fetch(`${BASE_URL}/api/report/status/${ticket}`);
     const data = await res.json();
 
     if (!res.ok) {
@@ -470,7 +470,7 @@ async function trackReport() {
 }
 /*=====CONVERSATION=====*/
 async function loadConversation(ticket) {
-  const res = await fetch(`/api/report/messages/${ticket}`);
+  const res = await fetch(`${BASE_URL}/api/report/messages/${ticket}`);
   const data = (await res.json()) || [];
 
   const box = document.getElementById("conversationBox")
@@ -513,7 +513,7 @@ async function sendReply() {
 
   if (!msg) return alert("Enter a message");
 
-  const res = await fetch(`/api/report/reply/${ticket}`, {
+  const res = await fetch(`${BASE_URL}/api/report/reply/${ticket}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message: msg })
