@@ -172,7 +172,7 @@ app.get("/api/admin/reports", requireAdmin, (_, res) => {
 
         // Fix image URL
         if (report.report_image) {
-          report.report_image = `http://${LOCAL_IP}:5000/uploads/${report.report_image}`;
+          report.report_image = `https://norsu-complaint-system.onrender.com/uploads/${report.report_image}`;
         }
 
         // 🔥 ADD THIS PART (GET MESSAGES)
