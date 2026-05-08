@@ -606,6 +606,12 @@ function renderReports() {
 if (openedReportId === r.id) {
   div.classList.add("open");
 }
+if (openConversationId === r.id) {
+  const conv = div.querySelector(`#conv-${r.id}`);
+  if (conv) {
+    conv.style.display = "block";
+  }
+}
   });
 }
 async function markSolved(id) {
