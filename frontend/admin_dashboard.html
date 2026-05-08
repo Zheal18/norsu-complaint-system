@@ -351,6 +351,7 @@ select, input {
 
 <script>
 let openConversationId = null;     
+let openedReportId = null;
 const unreadCounts = {};           
 const BASE = "https://norsu-complaint-system.onrender.com";;
 const admin = JSON.parse(localStorage.getItem("admin"));
@@ -418,6 +419,12 @@ function toggleReport(id) {
 
   const parent = body.parentElement;
   parent.classList.toggle("open");
+// remember opened report
+  if (parent.classList.contains("open")) {
+    openedReportId = id;
+  } else {
+    openedReportId = null;
+  }
 }
 function toggleConversation(id) {
   const el = document.getElementById("conv-" + id);
@@ -596,6 +603,9 @@ function renderReports() {
 `;
       
     reports.appendChild(div);
+if (openedReportId === r.id) {
+  div.classList.add("open");
+}
   });
 }
 async function markSolved(id) {
