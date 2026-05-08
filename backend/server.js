@@ -65,6 +65,14 @@ db.serialize(() => {
   )
 `);
 db.run(`
+  ALTER TABLE reports
+  ADD COLUMN has_new_message INTEGER DEFAULT 1
+`, (err) => {
+  if (err && !err.message.includes("duplicate column")) {
+    console.error(err.message);
+  }
+});
+db.run(`
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     report_id INTEGER,
@@ -277,15 +285,16 @@ app.post("/api/report", upload.single("report_image"), (req, res) => {
 
    db.run(
   `INSERT INTO reports 
-  (complainant_name, respondent_name, description, report_image, ticket, created_at)
-  VALUES (?,?,?,?,?,?)`,
+  (complainant_name, respondent_name, description, report_image, ticket, created_at, has_new_message)
+  VALUES (?,?,?,?,?,?,?)`,
   [
     req.body.complainant_name,
     req.body.respondent_name,
     req.body.description,
     req.file?.filename || null,
     ticket,
-    phTime
+    phTime,
+    1
   ],
       function (err) {
         if (err) {
@@ -338,7 +347,16 @@ app.post("/api/report/reply/:ticket", (req, res) => {
       db.run(
         "INSERT INTO messages (report_id, sender, message) VALUES (?, 'user', ?)",
         [row.id, message],
-        () => res.json({ success: true })
+        () => {
+
+  db.run(
+    "UPDATE reports SET has_new_message = 1 WHERE id=?",
+    [row.id]
+  );
+
+  res.json({ success: true });
+
+}
       );
     }
   );
@@ -383,7 +401,10 @@ db.run(
         if (insertErr) {
           console.error("❌ Insert message error:", insertErr);
         }
-
+	db.run(
+  "UPDATE reports SET has_new_message = 0 WHERE id=?",
+  [req.params.id]
+);
         res.json({ success: true });
       }
     );
