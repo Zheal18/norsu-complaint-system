@@ -354,13 +354,13 @@ let openConversationId = null;
 let openedReportId = null;
 const unreadCounts = {};           
 const BASE = "https://norsu-complaint-system.onrender.com";;
-const admin = JSON.parse(localStorage.getItem("admin"));
+const admin = JSON.parse(sessionStorage.getItem("admin"));
 let allReports = [];
 const reports = document.getElementById("reports");
 const reportSort = document.getElementById("reportSort");
 const reportDate = document.getElementById("reportDate");
 window.onload = () => {
-  const admin = JSON.parse(localStorage.getItem("admin"));
+  const admin = JSON.parse(sessionStorage.getItem("admin"));
   const title = document.getElementById("dashboardTitle");
 
   if (admin && admin.department) {
@@ -376,7 +376,7 @@ if (!admin) {
 }
 
 function logout() {
-  localStorage.removeItem("admin");
+  sessionStorage.removeItem("admin");
   location.href = "index.html";
 }
 async function changeMyPassword() {
@@ -404,9 +404,9 @@ async function changeMyPassword() {
 
   alert("✅ Password changed successfully");
 
-  // 🔥 IMPORTANT: update localStorage
+  // 🔥 IMPORTANT: update sessionStorage
   admin.password = newPass;
-  localStorage.setItem("admin", JSON.stringify(admin));
+  sessionStorage.setItem("admin", JSON.stringify(admin));
 }
 function toggle(id) {
   const el = document.getElementById(id);

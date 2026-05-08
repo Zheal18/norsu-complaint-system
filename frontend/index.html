@@ -220,24 +220,16 @@
         /* ===============================
            SAVE SESSION (FINAL & CORRECT)
         ================================ */
-        if (role === "teacher") {
-          localStorage.setItem(
-            "teacher",
-            JSON.stringify(data.teacher)
-          );
-          window.location.href = "teacher_dashboard.html";
-        } else {
-          localStorage.setItem(
-            "admin",
-            JSON.stringify(data.admin)
-          );
+        sessionStorage.setItem(
+ 		 "admin",
+ 	 JSON.stringify(data.admin)
+	);
 
-          if (data.admin.role === "super_admin") {
-            window.location.href = "super_admin_dashboard.html";
-          } else {
-            window.location.href = "admin_dashboard.html";
-          }
-        }
+	if (data.admin.role === "super_admin") {
+ 	window.location.href = "super_admin_dashboard.html";
+	} else {
+ 	 window.location.href = "admin_dashboard.html";
+	}
 
       } catch (err) {
         console.error(err);
