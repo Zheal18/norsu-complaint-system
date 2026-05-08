@@ -164,7 +164,7 @@ app.post("/api/admin/change-password", requireAdmin, (req, res) => {
 });
 app.get("/api/admin/reports", requireAdmin, (_, res) => {
   db.all(
-    `SELECT * FROM reports ORDER BY created_at DESC`,
+    `SELECT * FROM reports ORDER BY id DESC`,
     [],
     async (_, rows) => {
 
@@ -188,6 +188,7 @@ app.get("/api/admin/reports", requireAdmin, (_, res) => {
         });
 
       }
+	
 
       res.json(rows);
     }
