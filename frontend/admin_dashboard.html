@@ -352,6 +352,7 @@ select, input {
 <script>
 let openConversationId = null;     
 let openedReportId = null;
+let isTyping = false;
 const unreadCounts = {};           
 const BASE = "https://norsu-complaint-system.onrender.com";;
 const admin = JSON.parse(sessionStorage.getItem("admin"));
@@ -577,7 +578,10 @@ function renderReports() {
 </div>
     </div>
 
-    <textarea id="msg-${r.id}" 
+    <textarea 
+  id="msg-${r.id}"
+  onfocus="isTyping = true"
+  onblur="isTyping = false"
       placeholder="Type update message..." 
       style="width:100%;margin-top:10px;"></textarea>
 
@@ -735,7 +739,11 @@ document.addEventListener("keydown", (e) => {
   }
 });
 loadReports();
-setInterval(loadReports, 5000);
+setInterval(() => {
+  if (!isTyping) {
+    loadReports();
+  }
+}, 5000);
 </script>
 
 </body>
