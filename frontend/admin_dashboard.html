@@ -559,25 +559,33 @@ function renderReports() {
 <div id="conv-${r.id}" style="display:none; margin-top:10px;">
 
   ${r.messages && r.messages.length ? r.messages.map(m => `
+  <div style="
+    display:flex;
+    justify-content:${m.sender === 'admin' ? 'flex-end' : 'flex-start'};
+    margin-top:8px;
+  ">
+
     <div style="
-      margin-top:8px;
-      padding:10px;
+      padding:10px 14px;
       border-radius:18px;
       max-width:75%;
-      display:inline-block;
-      width:auto;
-      word-wrap:break-word;
+      width:fit-content;
+      word-break:break-word;
       white-space:pre-wrap;
       ${m.sender === 'admin'
-        ? 'background:#dbeafe; margin-left:auto; text-align:right;'
-        : 'background:#dcfce7; margin-right:auto; text-align:left;'}
+        ? 'background:#dbeafe; text-align:right;'
+        : 'background:#dcfce7; text-align:left;'}
     ">
-      <div style="font-size:12px; opacity:0.7;">
+
+      <div style="font-size:12px; opacity:0.7; margin-bottom:4px;">
         ${m.sender === 'admin' ? 'Admin' : 'User'}
       </div>
+
       ${m.message}
+
     </div>
-  `).join("") : "<small>No messages yet</small>"}
+  </div>
+`).join("") : "<small>No messages yet</small>"}
 
 </div>
     </div>
