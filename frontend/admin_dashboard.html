@@ -524,7 +524,7 @@ function renderReports() {
   <span>📄 Report #${r.id}</span>
 
   <div style="display:flex; gap:10px; align-items:center;">
-    ${unreadCounts[r.id] > 0 ? `
+    ${r.has_new_message ? `
       <span style="
         background:#ef4444;
         color:#fff;
@@ -532,7 +532,7 @@ function renderReports() {
         padding:4px 8px;
         font-size:12px;
       ">
-        🔔 ${unreadCounts[r.id]}
+        🔔
       </span>
     ` : ""}
 
