@@ -566,16 +566,17 @@ function renderReports() {
   ">
 
     <div style="
-      padding:10px 14px;
-      border-radius:18px;
-      max-width:75%;
-      width:fit-content;
-      word-break:break-word;
-      white-space:pre-wrap;
-      ${m.sender === 'admin'
-        ? 'background:#dbeafe; text-align:right;'
-        : 'background:#dcfce7; text-align:left;'}
-    ">
+  padding:10px 14px;
+  border-radius:18px;
+  display:inline-block;
+  max-width:fit-content;
+  min-width:80px;
+  word-break:break-word;
+  white-space:pre-wrap;
+  ${m.sender === 'admin'
+    ? 'background:#dbeafe; text-align:right;'
+    : 'background:#dcfce7; text-align:left;'}
+">
 
       <div style="font-size:12px; opacity:0.7; margin-bottom:4px;">
         ${m.sender === 'admin' ? 'Admin' : 'User'}
