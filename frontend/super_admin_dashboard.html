@@ -297,7 +297,7 @@ async function loadReports() {
     });
 
     if (!res.ok) {
-      alert("Failed to load reports");
+      console.error("Failed to load reports");
       return;
     }
 
@@ -316,7 +316,7 @@ async function loadReports() {
 
   } catch (err) {
     console.error("Error loading reports:", err);
-    alert("Server error while loading reports");
+    
   }
 }
 function renderReports() {
@@ -430,7 +430,7 @@ async function loadAdmins() {
     });
 
     if (!res.ok) {
-      alert("Failed to load admins");
+      console.error("Failed to load admins");
       return;
     }
 
@@ -470,7 +470,6 @@ async function loadAdmins() {
 
   } catch (err) {
     console.error("Error loading admins:", err);
-    alert("Server error while loading admins");
   }
 }
 async function deleteAdmin(id) {
@@ -564,8 +563,8 @@ reportDate.onchange = renderReports;
 /* ================= INIT ================= */
 loadReports();
 loadAdmins();
-setInterval(loadReports, 5000);
-setInterval(loadAdmins, 5000);
+setInterval(loadReports, 15000);
+setInterval(loadAdmins, 15000);
 </script>
 <!-- IMAGE MODAL -->
 <div id="imgModal" style="
