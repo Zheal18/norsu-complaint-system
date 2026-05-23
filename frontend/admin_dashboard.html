@@ -46,6 +46,56 @@ body::before {
   box-shadow: 0 12px 30px rgba(0,0,0,0.1);
 }
 /* ===== HEADER ===== */
+.dashboard-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 220px;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+
+  position: sticky;
+  top: 20px;
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 18px;
+}
+
+.tab-btn {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  background: #e2e8f0;
+  transition: 0.2s;
+}
+
+.tab-btn:hover {
+  background: #cbd5e1;
+}
+
+.tab-btn.active {
+  background: #1e3a8a;
+  color: white;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  flex: 1;
+}
 .header {
   display: flex;
   justify-content: space-between;
@@ -75,9 +125,6 @@ h2 {
   letter-spacing: 2px;
   margin-bottom: 8px;
 }
-<p style="text-align:center;color:#64748b;margin-bottom:20px;">
-  Complaint Management System
-</p>
 
 /* ===== PROFESSIONAL BUTTON STYLE ===== */
 .btn {
@@ -218,6 +265,13 @@ select, input {
 .report.solved {
   border-left: 6px solid #16a34a;
 }
+.report.processing {
+  border-left: 6px solid #2563eb;
+}
+
+.report.default {
+  border-left: 6px solid #f59e0b;
+}
 
 /* ===== BADGES ===== */
 .badge {
@@ -272,6 +326,10 @@ select, input {
 .report.open .report-body {
   display: block;
 }
+.top-actions {
+  display: flex;
+  gap: 10px;
+}
 </style>
 </head>
 
@@ -289,20 +347,59 @@ select, input {
   <img id="modalImg" style="max-width:90%;max-height:90%;border-radius:10px;">
 </div>
 <div class="dashboard">
+
   <div class="header">
-  <div class="header-left">
-    <div>
-      <div class="system-title">NORSU Mabinay Complaint Management System</div>
-      <div class="dashboard-title" id="dashboardTitle">ADMIN DASHBOARD</div>
+    
+    <div class="header-left">
+      <div>
+        <div class="system-title">
+          NORSU Mabinay Complaint Management System
+        </div>
+
+        <div class="dashboard-title" id="dashboardTitle">
+          ADMIN DASHBOARD
+        </div>
+      </div>
     </div>
+
+    <div class="top-actions">
+      <button class="btn btn-danger" onclick="logout()">
+        Logout
+      </button>
+
+      <button class="btn btn-primary" onclick="changeMyPassword()">
+        Change Password
+      </button>
+    </div>
+
   </div>
 
-  <div class="top-actions">
-    <button class="btn btn-danger" onclick="logout()">Logout</button>
-    <button class="btn btn-primary" onclick="changeMyPassword()">Change Password</button>
+  <div class="dashboard-layout">
+
+   <div class="sidebar">
+
+  <div class="sidebar-title">
+    REPORT STATUS
   </div>
+
+  <button class="tab-btn active" onclick="setTab('pending', this)">
+    ⏳ Pending
+  </button>
+
+  <button class="tab-btn" onclick="setTab('processing', this)">
+    🔄 Processing
+  </button>
+
+  <button class="tab-btn" onclick="setTab('solved', this)">
+    ✅ Solved
+  </button>
+
+  <button class="tab-btn" onclick="setTab('default', this)">
+    ⚠️ Default
+  </button>
+
 </div>
-
+<div class="main-content">
 <!-- QR CODE -->
 <div class="section">
   <div class="section-header" onclick="toggle('qrSection')">
@@ -327,7 +424,6 @@ select, input {
 
   </div>
 </div>
-   
   <!-- REPORTS -->
   <div class="section">
     <div class="section-header" onclick="toggle('reportsSection')">
@@ -348,7 +444,8 @@ select, input {
     </div>
   </div>
 </div>
-
+</div>
+</div>
 <script>
 let openConversationId = null;     
 let openedReportId = null;
@@ -357,6 +454,7 @@ const unreadCounts = {};
 const BASE = "https://norsu-complaint-system.onrender.com";;
 const admin = JSON.parse(sessionStorage.getItem("admin"));
 let allReports = [];
+let currentTab = "pending";
 const reports = document.getElementById("reports");
 const reportSort = document.getElementById("reportSort");
 const reportDate = document.getElementById("reportDate");
@@ -475,7 +573,6 @@ async function loadReports() {
 
   return {
     ...r,
-    solved: r.solved === 1
   };
 });
 
@@ -496,12 +593,26 @@ function formatDate(d) {
     hour12:true
   });
 }
+function setTab(tab, btn) {
 
+  currentTab = tab;
+
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.classList.remove("active");
+  });
+
+  btn.classList.add("active");
+
+  renderReports();
+}
 function renderReports() {
   reports.innerHTML = "";
   let list = [...allReports];
 
-  if (reportDate.value)
+
+list = list.filter(r => r.status === currentTab);
+
+if (reportDate.value)
     list = list.filter(r => r.created_at.startsWith(reportDate.value));
   if (!list.length) {
     reports.innerHTML = "<div class='empty'>📭 No reports available</div>";
@@ -516,9 +627,16 @@ function renderReports() {
 
   list.forEach(r => {
     const div = document.createElement("div");
-    div.className = `card report ${r.solved ? "solved" : "unsolved"}`;
-
-  div.innerHTML = `
+   div.className = `card report ${
+  r.status === "solved"
+    ? "solved"
+    : r.status === "processing"
+    ? "processing"
+    : r.status === "default"
+    ? "default"
+    : "unsolved"
+}`;
+ div.innerHTML = `
  <div class="report-header" onclick="toggleReport(${r.id}); event.stopPropagation();">
   <span>📄 Report #${r.id}</span>
 
@@ -535,7 +653,19 @@ function renderReports() {
       </span>
     ` : ""}
 
-    <span>${r.solved ? "✅ Resolved" : "⏳ Pending"}</span>
+    <span>
+  ${
+    r.status === "pending"
+      ? "⏳ Pending"
+      : r.status === "processing"
+      ? "🔄 Processing"
+      : r.status === "solved"
+      ? "✅ Resolved"
+      : r.status === "default"
+      ? "⚠️ Default"
+      : "⏳ Pending"
+  }
+</span>
   </div>
 </div>
   <div class="report-body" id="body-${r.id}">
@@ -608,12 +738,40 @@ function renderReports() {
 
     <br><br>
 
-    ${!r.solved
-      ? `<button class="btn btn-success" onclick="markSolved(${r.id})">
-          Mark as Resolved
-         </button>`
-      : `<button class="btn btn-outline" disabled>Resolved</button>`
-    }
+    ${
+  r.status === "pending"
+    ? `
+      <button class="btn btn-primary" onclick="markProcessing(${r.id})">
+        Mark as Processing
+      </button>
+
+      <button class="btn btn-success" onclick="markSolved(${r.id})">
+        Mark as Resolved
+      </button>
+    `
+
+    : r.status === "processing"
+
+    ? `
+      <button class="btn btn-success" onclick="markSolved(${r.id})">
+        Mark as Resolved
+      </button>
+    `
+
+    : r.status === "solved"
+
+    ? `
+      <button class="btn btn-outline" disabled>
+        Resolved
+      </button>
+    `
+
+    : `
+      <button class="btn btn-outline" disabled>
+        Defaulted
+      </button>
+    `
+}
   </div>
 `;
       
@@ -629,10 +787,36 @@ if (openConversationId === r.id) {
 }
   });
 }
+async function markProcessing(id) {
+
+  const res = await fetch(`${BASE}/api/reports/${id}/status`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      status: "processing"
+    })
+  });
+
+  if (!res.ok) {
+    alert("Failed to update status");
+    return;
+  }
+
+  await loadReports();
+}
 async function markSolved(id) {
- const res = await fetch(`${BASE}/api/reports/${id}/solve`, {
-  method: "PUT"
-});
+
+  const res = await fetch(`${BASE}/api/reports/${id}/status`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      status: "solved"
+    })
+  });
 
 if (!res.ok) {
   alert("Failed to update status");
@@ -756,6 +940,5 @@ setInterval(() => {
   }
 }, 15000);
 </script>
-
 </body>
 </html>

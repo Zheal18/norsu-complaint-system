@@ -51,7 +51,7 @@ db.serialize(() => {
       department TEXT
     )
   `);
- db.run(`
+db.run(`
   CREATE TABLE IF NOT EXISTS reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     complainant_name TEXT,
@@ -61,17 +61,11 @@ db.serialize(() => {
     ticket TEXT UNIQUE,
     solved INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status_message TEXT
+    status_message TEXT,
+    has_new_message INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'pending'
   )
 `);
-db.run(`
-  ALTER TABLE reports
-  ADD COLUMN has_new_message INTEGER DEFAULT 1
-`, (err) => {
-  if (err && !err.message.includes("duplicate column")) {
-    console.error(err.message);
-  }
-});
 db.run(`
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -285,8 +279,17 @@ app.post("/api/report", upload.single("report_image"), (req, res) => {
 
    db.run(
   `INSERT INTO reports 
-  (complainant_name, respondent_name, description, report_image, ticket, created_at, has_new_message)
-  VALUES (?,?,?,?,?,?,?)`,
+(
+  complainant_name,
+  respondent_name,
+  description,
+  report_image,
+  ticket,
+  created_at,
+  has_new_message,
+  status
+)
+VALUES (?,?,?,?,?,?,?,?)`,
   [
     req.body.complainant_name,
     req.body.respondent_name,
@@ -294,7 +297,8 @@ app.post("/api/report", upload.single("report_image"), (req, res) => {
     req.file?.filename || null,
     ticket,
     phTime,
-    1
+    1,
+    "pending"
   ],
       function (err) {
         if (err) {
@@ -422,18 +426,21 @@ app.put("/api/reports/:id/solve", (req, res) => {
 app.put("/api/reports/:id/status", (req, res) => {
   const { status } = req.body;
 
-  if (!["solved", "unsolved"].includes(status)) {
-    return res.status(400).json({ error: "Invalid status value" });
-  }
-	const solvedValue = status === "solved" ? 1 : 0;
-  db.run(
-    "UPDATE reports SET solved=? WHERE id=?",
-    [solvedValue, req.params.id],
-    err => {
-      if (err) return res.status(500).json({ error: "Status update failed" });
-      res.json({ success: true, status });
+  if (!["pending", "processing", "solved", "default"].includes(status)) {
+  return res.status(400).json({ error: "Invalid status value" });
+}
+
+db.run(
+  "UPDATE reports SET status=? WHERE id=?",
+  [status, req.params.id],
+  err => {
+    if (err) {
+      return res.status(500).json({ error: "Status update failed" });
     }
-  );
+
+    res.json({ success: true, status });
+  }
+);
 });
 /* ================= START ================= */
 app.listen(port, "0.0.0.0", () => {
