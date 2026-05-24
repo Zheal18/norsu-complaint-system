@@ -1,6 +1,6 @@
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
 const multer = require("multer");
+const mysql = require("mysql2");
 const path = require("path");
 const cors = require("cors");
 const fs = require("fs");
@@ -34,60 +34,88 @@ app.use(express.static(path.join(__dirname, "../frontend")));
 
 
 /* ================= DATABASE ================= */
-const db = new sqlite3.Database("./database.db", err => {
-  if (err) console.error("❌ DB error:", err.message);
-  else console.log("✅ SQLite connected");
+const db = mysql.createConnection({
+  host: process.env.MYSQLHOST,
+  port: process.env.MYSQLPORT,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE
+});
+
+db.connect((err) => {
+  if (err) {
+    console.error("❌ MySQL Connection Error:", err);
+    return;
+  }
+
+  console.log("✅ Connected to Railway MySQL!");
 });
 
 /* ================= TABLES ================= */
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS admins (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT,
-      profile_pic TEXT,
-      role TEXT DEFAULT 'admin',
-      department TEXT
-    )
-  `);
-db.run(`
-  CREATE TABLE IF NOT EXISTS reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    complainant_name TEXT,
-    respondent_name TEXT,
-    description TEXT,
-    report_image TEXT,
-    ticket TEXT UNIQUE,
-    solved INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status_message TEXT,
-    has_new_message INTEGER DEFAULT 1,
-    status TEXT DEFAULT 'pending'
-  )
-`);
-db.run(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    report_id INTEGER,
-    sender TEXT,              -- 'admin' or 'user'
-    message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
+
+db.query(`
+CREATE TABLE IF NOT EXISTS admins (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(255) UNIQUE,
+  password VARCHAR(255),
+  profile_pic TEXT,
+  role VARCHAR(50) DEFAULT 'admin',
+  department VARCHAR(255)
+)
 `);
 
-  // Ensure super admin
-  db.get("SELECT * FROM admins WHERE username=?", ["developer"], (_, row) => {
-    if (!row) {
-      db.run(
+db.query(`
+CREATE TABLE IF NOT EXISTS reports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  complainant_name TEXT,
+  respondent_name TEXT,
+  description TEXT,
+  report_image TEXT,
+  ticket VARCHAR(255) UNIQUE,
+  solved INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  status_message TEXT,
+  has_new_message INT DEFAULT 1,
+  status VARCHAR(50) DEFAULT 'pending'
+)
+`);
+
+db.query(`
+CREATE TABLE IF NOT EXISTS messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  report_id INT,
+  sender VARCHAR(50),
+  message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+`);
+
+db.query(
+  "SELECT * FROM admins WHERE username=?",
+  ["developer"],
+  (err, rows) => {
+
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    if (rows.length === 0) {
+
+      db.query(
         "INSERT INTO admins (username,password,role) VALUES (?,?,?)",
         ["developer", "dev122717", "super_admin"]
       );
+
     } else {
-      db.run("UPDATE admins SET role='super_admin' WHERE username='developer'");
+
+      db.query(
+        "UPDATE admins SET role='super_admin' WHERE username='developer'"
+      );
+
     }
-  });
-});
+  }
+);
 
 /* ================= MULTER ================= */
 const storage = multer.diskStorage({
@@ -104,17 +132,20 @@ function requireAdmin(req, res, next) {
 
   if (!u || !p) return res.status(401).json({ error: "Missing credentials" });
 
-  db.get(
-    "SELECT * FROM admins WHERE username=? AND password=?",
-    [u, p],
-    (err, row) => {
-      if (err || !row) return res.status(403).json({ error: "Unauthorized" });
-      req.admin = row;
-      next();
-    }
-  );
-}
+db.query(
+  "SELECT * FROM admins WHERE username=? AND password=?",
+  [u, p],
+  (err, rows) => {
 
+    if (err || rows.length === 0) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    req.admin = rows[0];
+    next();
+  }
+);
+}
 function requireSuperAdmin(req, res, next) {
   if (req.admin.role !== "super_admin")
     return res.status(403).json({ error: "Super Admin only" });
@@ -130,19 +161,34 @@ app.get("/", (_, res) => {
 app.post("/api/admin/login", (req, res) => {
   const { username, password } = req.body;
 
-  db.get(
-    "SELECT id, username, password, role, department FROM admins WHERE username=? AND password=?",
-    [username, password],
-    (_, row) => {
-      if (!row) return res.status(401).json({ error: "Invalid credentials" });
-      res.json({ success: true, admin: row });
+  db.query(
+  "SELECT id, username, password, role, department FROM admins WHERE username=? AND password=?",
+  [username, password],
+  (err, rows) => {
+
+    if (err || rows.length === 0) {
+      return res.status(401).json({ error: "Invalid credentials" });
     }
-  );
+
+    res.json({
+      success: true,
+      admin: rows[0]
+    });
+  }
+);
 });
 app.get("/api/admin/list", requireAdmin, requireSuperAdmin, (_, res) => {
-  db.all("SELECT id, username, role, department FROM admins ORDER BY username", [], (_, rows) =>
-    res.json(rows)
-  );
+ db.query(
+  "SELECT id, username, role, department FROM admins ORDER BY username",
+  (err, rows) => {
+
+    if (err) {
+      return res.status(500).json({ error: "Failed to fetch admins" });
+    }
+
+    res.json(rows);
+  }
+);
 });
 app.post("/api/admin/change-password", requireAdmin, (req, res) => {
   const { newPassword } = req.body;
@@ -151,23 +197,23 @@ app.post("/api/admin/change-password", requireAdmin, (req, res) => {
     return res.status(400).json({ error: "Password required" });
   }
 
-  db.run(
-    "UPDATE admins SET password=? WHERE id=?",
-    [newPassword, req.admin.id],
-    function (err) {
-      if (err) {
-        console.error("❌ Password update error:", err);
-        return res.status(500).json({ error: "Update failed" });
-      }
+  db.query(
+  "UPDATE admins SET password=? WHERE id=?",
+  [newPassword, req.admin.id],
+  (err, result) => {
 
-      res.json({ success: true });
+    if (err) {
+      console.error("❌ Password update error:", err);
+      return res.status(500).json({ error: "Update failed" });
     }
-  );
+
+    res.json({ success: true });
+  }
+);
 });
 app.get("/api/admin/reports", requireAdmin, (_, res) => {
-  db.all(
-    `SELECT * FROM reports ORDER BY id DESC`,
-    [],
+    db.query(
+      `SELECT * FROM reports ORDER BY id DESC`,
     async (_, rows) => {
 
       for (let report of rows) {
@@ -179,9 +225,9 @@ app.get("/api/admin/reports", requireAdmin, (_, res) => {
 
         // 🔥 ADD THIS PART (GET MESSAGES)
         report.messages = await new Promise((resolve, reject) => {
-          db.all(
-            "SELECT sender, message, created_at FROM messages WHERE report_id=? ORDER BY created_at ASC",
-            [report.id],
+          db.query(
+  "SELECT sender, message, created_at FROM messages WHERE report_id=? ORDER BY created_at ASC",
+  [report.id],
             (err, msgs) => {
               if (err) reject(err);
               else resolve(msgs);
@@ -201,27 +247,31 @@ app.get("/api/admin/reports", requireAdmin, (_, res) => {
 app.post("/api/super/admins", requireAdmin, requireSuperAdmin, (req, res) => {
   const { department, username, password } = req.body;
 
-  db.run(
-    "INSERT INTO admins (username,password,role, department) VALUES (?,?,?,?)",
-    [username, password, "admin", department],
-    err => {
-      if (err) return res.status(500).json({ error: "Create failed" });
-      res.json({ success: true });
+  db.query(
+  "INSERT INTO admins (username,password,role, department) VALUES (?,?,?,?)",
+  [username, password, "admin", department],
+  (err, result) => {
+
+    if (err) {
+      return res.status(500).json({ error: "Create failed" });
     }
-  );
+
+    res.json({ success: true });
+  }
+);
 });
 
 app.delete("/api/super/admins/:id", requireAdmin, requireSuperAdmin, (req, res) => {
   if (parseInt(req.params.id) === req.admin.id)
     return res.status(400).json({ error: "Cannot delete yourself" });
 
-  db.run("DELETE FROM admins WHERE id=?", [req.params.id], err => {
+  db.query("DELETE FROM admins WHERE id=?", [req.params.id], (err, result) => {
     if (err) return res.status(500).json({ error: "Delete failed" });
     res.json({ success: true });
   });
 });
 app.delete("/api/super/reports/:id", requireAdmin, requireSuperAdmin, (req, res) => {
-  db.run("DELETE FROM reports WHERE id=?", [req.params.id], err => {
+  db.query("DELETE FROM reports WHERE id=?", [req.params.id], (err, result) => {
     if (err) return res.status(500).json({ error: "Delete failed" });
     res.json({ success: true });
   });
@@ -236,10 +286,10 @@ app.post("/api/super/admin/reset/:id", requireAdmin, requireSuperAdmin, (req, re
     return res.status(400).json({ error: "Password required" });
   }
 
-  db.run(
+  db.query(
     "UPDATE admins SET password=? WHERE id=?",
     [password, req.params.id],
-    function(err) {
+    (err, result) => {
 
       if (err) {
         console.error("❌ Admin reset error:", err);
@@ -265,19 +315,23 @@ app.post("/api/report", upload.single("report_image"), (req, res) => {
   function createUniqueTicket(callback) {
     const ticket = generateTicket();
 
-    db.get("SELECT id FROM reports WHERE ticket=?", [ticket], (err, row) => {
-      if (row) {
-        // Ticket already exists → try again
-        createUniqueTicket(callback);
-      } else {
-        callback(ticket);
-      }
-    });
+    db.query(
+  "SELECT id FROM reports WHERE ticket=?",
+  [ticket],
+  (err, rows) => {
+
+    if (rows.length > 0) {
+      createUniqueTicket(callback);
+    } else {
+      callback(ticket);
+    }
+  }
+ );
   }
 
   createUniqueTicket((ticket) => {
 
-   db.run(
+   db.query(
   `INSERT INTO reports 
 (
   complainant_name,
@@ -300,7 +354,7 @@ VALUES (?,?,?,?,?,?,?,?)`,
     1,
     "pending"
   ],
-      function (err) {
+      (err, result) => {
         if (err) {
           console.error("❌ Report insert error:", err);
           return res.status(500).json({ error: "Failed to submit report" });
@@ -318,68 +372,96 @@ VALUES (?,?,?,?,?,?,?,?)`,
 });
 /* ================= TRACK REPORT BY TICKET ================= */
 app.get("/api/report/status/:ticket", (req, res) => {
-  db.get(
-    "SELECT solved, created_at, status_message FROM reports WHERE ticket=?",
-    [req.params.ticket],
-    (err, row) => {
-      if (err || !row) {
-        return res.status(404).json({ error: "Ticket not found" });
-      }
+  db.query(
+  "SELECT status, created_at, status_message FROM reports WHERE ticket=?",
+  [req.params.ticket],
+  (err, rows) => {
 
-      res.json({
-        status: row.solved === 1 ? "Solved" : "Under Review",
-        created_at: row.created_at,
-	status_message: row.status_message
-      });
+    if (err || rows.length === 0) {
+      return res.status(404).json({ error: "Ticket not found" });
     }
-  );
+
+    const row = rows[0];
+
+    res.json({
+      status: row.status,
+      created_at: row.created_at,
+      status_message: row.status_message
+    });
+  }
+);
 });
 /* ================ USER REPLY===================*/
 app.post("/api/report/reply/:ticket", (req, res) => {
+
   const { message } = req.body;
 
   if (!message || message.trim() === "") {
     return res.status(400).json({ error: "Message required" });
   }
 
-  db.get(
+  db.query(
     "SELECT id FROM reports WHERE ticket=?",
     [req.params.ticket],
-    (err, row) => {
-      if (!row) return res.status(404).json({ error: "Ticket not found" });
+    (err, rows) => {
 
-      db.run(
-        "INSERT INTO messages (report_id, sender, message) VALUES (?, 'user', ?)",
-        [row.id, message],
-        () => {
+      if (err || rows.length === 0) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
 
-  db.run(
-    "UPDATE reports SET has_new_message = 1 WHERE id=?",
-    [row.id]
-  );
+    db.query(
+  "INSERT INTO messages (report_id, sender, message) VALUES (?, 'user', ?)",
+  [rows[0].id, message],
+  (insertErr) => {
 
-  res.json({ success: true });
-
-}
-      );
+    if (insertErr) {
+      return res.status(500).json({ error: "Failed to send message" });
     }
-  );
+
+    db.query(
+      "UPDATE reports SET has_new_message = 1 WHERE id=?",
+      [rows[0].id],
+      (updateErr) => {
+
+        if (updateErr) {
+          return res.status(500).json({ error: "Failed to update message status" });
+        }
+
+        res.json({ success: true });
+
+      }
+    );
+
+  }
+);
+
 });
 app.get("/api/report/messages/:ticket", (req, res) => {
-  db.get(
-    "SELECT id FROM reports WHERE ticket=?",
-    [req.params.ticket],
-    (err, row) => {
-      if (!row) return res.status(404).json({ error: "Not found" });
+  db.query(
+  "SELECT id FROM reports WHERE ticket=?",
+  [req.params.ticket],
+  (err, rows) => {
 
-      db.all(
-        "SELECT sender, message, created_at FROM messages WHERE report_id=? ORDER BY created_at ASC",
-        [row.id],
-        (_, rows) => res.json(rows)
-      );
+    if (err || rows.length === 0) {
+      return res.status(404).json({ error: "Not found" });
     }
-  );
+
+    db.query(
+      "SELECT sender, message, created_at FROM messages WHERE report_id=? ORDER BY created_at ASC",
+      [rows[0].id],
+      (err, messages) => {
+
+        if (err) {
+          return res.status(500).json({ error: "Failed to fetch messages" });
+        }
+
+        res.json(messages);
+      }
+    );
+  }
+);
 });
+/* ================= ADMIN MESSAGE ================= */
 /* ================= ADMIN MESSAGE ================= */
 app.post("/api/reports/:id/message", requireAdmin, (req, res) => {
 
@@ -389,37 +471,61 @@ app.post("/api/reports/:id/message", requireAdmin, (req, res) => {
     return res.status(400).json({ error: "Message required" });
   }
 
-db.run(
-  "UPDATE reports SET status_message=? WHERE id=?",
-  [message, req.params.id],
-  err => {
-    if (err) {
-      console.error("❌ Message update error:", err);
-      return res.status(500).json({ error: "Update failed" });
-    }
+  db.query(
+    "UPDATE reports SET status_message=? WHERE id=?",
+    [message, req.params.id],
+    (err, result) => {
 
-    db.run(
-      "INSERT INTO messages (report_id, sender, message) VALUES (?, 'admin', ?)",
-      [req.params.id, message],
-      insertErr => {
-        if (insertErr) {
-          console.error("❌ Insert message error:", insertErr);
-        }
-	db.run(
-  "UPDATE reports SET has_new_message = 0 WHERE id=?",
-  [req.params.id]
-);
-        res.json({ success: true });
+      if (err) {
+        console.error("❌ Message update error:", err);
+        return res.status(500).json({ error: "Update failed" });
       }
-    );
-  }
-);
+
+      db.query(
+        "INSERT INTO messages (report_id, sender, message) VALUES (?, 'admin', ?)",
+        [req.params.id, message],
+        (insertErr) => {
+
+          if (insertErr) {
+            console.error("❌ Insert message error:", insertErr);
+            return res.status(500).json({ error: "Insert failed" });
+          }
+
+          db.query(
+            "UPDATE reports SET has_new_message = 0 WHERE id=?",
+            [req.params.id],
+            (updateErr) => {
+
+              if (updateErr) {
+                return res.status(500).json({ error: "Failed to update status" });
+              }
+
+              res.json({ success: true });
+
+            }
+          );
+
+        }
+      );
+
+    }
+  );
+
 });
 /* ================= OLD SOLVE ROUTE (LEFT UNCHANGED) ================= */
 app.put("/api/reports/:id/solve", (req, res) => {
-  db.run("UPDATE reports SET solved=1 WHERE id=?", [req.params.id], () =>
-    res.json({ success: true })
-  );
+  db.query(
+  "UPDATE reports SET solved=1 WHERE id=?",
+  [req.params.id],
+  (err, result) => {
+
+    if (err) {
+      return res.status(500).json({ error: "Solve failed" });
+    }
+
+    res.json({ success: true });
+  }
+);
 });
 
 /* ================= NEW GLOBAL STATUS ROUTE (ADDED) ================= */
@@ -430,10 +536,11 @@ app.put("/api/reports/:id/status", (req, res) => {
   return res.status(400).json({ error: "Invalid status value" });
 }
 
-db.run(
+db.query(
   "UPDATE reports SET status=? WHERE id=?",
   [status, req.params.id],
-  err => {
+  (err, result) => {
+
     if (err) {
       return res.status(500).json({ error: "Status update failed" });
     }
