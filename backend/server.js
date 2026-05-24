@@ -462,7 +462,6 @@ app.get("/api/report/messages/:ticket", (req, res) => {
 );
 });
 /* ================= ADMIN MESSAGE ================= */
-/* ================= ADMIN MESSAGE ================= */
 app.post("/api/reports/:id/message", requireAdmin, (req, res) => {
 
   const { message } = req.body;
