@@ -436,6 +436,7 @@ app.post("/api/report/reply/:ticket", (req, res) => {
 );
 
 });
+});
 app.get("/api/report/messages/:ticket", (req, res) => {
   db.query(
   "SELECT id FROM reports WHERE ticket=?",
